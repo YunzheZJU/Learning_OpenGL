@@ -2,9 +2,11 @@
 
 layout (location = 0) in vec3 VertexPosition;
 layout (location = 1) in vec3 VertexNormal;
+layout (location = 2) in vec2 VertexTexCoord;
 
 out vec3 FrontColor;
 out vec3 BackColor;
+out vec2 TexCoord;
 
 struct LightInfo {
     vec4 Position;      // Light position in eye coords.
@@ -50,6 +52,7 @@ void main()
 {
     vec3 eyeNorm;
     vec4 eyePosition;
+    TexCoord = VertexTexCoord;
     getEyeSpace(eyeNorm, eyePosition);
     FrontColor = phongModel(eyePosition, eyeNorm);
     BackColor = phongModel(eyePosition, -eyeNorm);
