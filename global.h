@@ -18,8 +18,11 @@
 // Include glm
 #define GLM_FORCE_SWIZZLE
 #include <glm/glm.hpp>
-using glm::mat4;
+using glm::vec2;
 using glm::vec3;
+using glm::vec4;
+using glm::mat4;
+using glm::mat3;
 #include <glm/gtc/matrix_transform.hpp>
 
 // Define shortcuts for coordinate in location array
@@ -38,7 +41,7 @@ using glm::vec3;
 #define PI 3.1415926
 
 // Define moving pace in fps mode
-#define MOVING_PACE 0.5
+#define MOVING_PACE 0.2
 
 // Define paning pace in fps mode: Should be 1
 #define PANNING_PACE 1

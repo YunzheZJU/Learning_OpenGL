@@ -12,12 +12,14 @@
 #include "light.h"
 #include "textfile.h"
 #include "Shader.h"
+#include "vbotorus.h"
 
 // Using namespace std for cout
 using namespace std;
 
 //extern GLuint vaoHandle;
 extern Shader shader;
+extern VBOTorus *torus;
 
 void Idle();
 void Redraw();
@@ -29,5 +31,9 @@ void ProcessNormalKey(unsigned char k, int x, int y);
 void ProcessSpecialKey(int k, int x, int y);
 void PrintStatus();
 void SetBufferedObjects();
+void initVBO();
+void setShader();
+void updateMVP();
+void updateShaderMVP();
 
 #endif //GPUBASEDRENDERING_A1_SYSTEM_H

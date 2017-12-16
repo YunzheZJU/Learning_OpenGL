@@ -8,7 +8,7 @@ int main(int argc, char *argv[]) {
 
     // Set the background color - dark grey
     glClearColor(0.2, 0.2, 0.2, 0.0);
-    glColor3f(0.1, 0.3, 0.8);
+//    glColor3f(0.1, 0.3, 0.8);
 
     glutDisplayFunc(Redraw);
     glutReshapeFunc(Reshape);
@@ -28,10 +28,19 @@ int main(int argc, char *argv[]) {
         cerr << "OpenGL 4.0 is not supported" << endl;
         exit(1);
     }
-    SetBufferedObjects();
-    shader.init();
-//    shader.set("toon.vert", "toon.frag");
-    shader.set("basic.vert", "basic.frag");
+
+    try {
+        shader.compileShader("basic.vert");
+        shader.compileShader("basic.frag");
+        shader.link();
+        shader.use();
+    } catch (GLSLProgramException &e) {
+        cerr << e.what() << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    initVBO();
+    setShader();
 
     glutMainLoop();
 

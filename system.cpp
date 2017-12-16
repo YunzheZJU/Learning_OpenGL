@@ -7,6 +7,10 @@
 #include "system.h"
 
 Shader shader = Shader();
+VBOTorus *torus;
+mat4 model;
+mat4 view;
+mat4 projection;
 GLfloat camera[3] = {0, 0, 10};                    // Position of camera
 GLfloat target[3] = {0, 0, 0};                    // Position of target of camera
 GLfloat camera_polar[3] = {10, -1.57f, 0};            // Polar coordinates of camera
@@ -22,6 +26,7 @@ int window[2] = {1280, 720};                        // Window size
 int windowcenter[2];                                // Center of this window, to be updated
 char message[70] = "Welcome!";                        // Message string to be shown
 //int focus = NONE;									// Focus object by clicking RMB
+GLfloat angle = 0.0f;
 
 void Idle() {
     glutPostRedisplay();
@@ -45,28 +50,34 @@ void Reshape(int width, int height) {
 void Redraw() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity();                        // Reset The Current Modelview Matrix
-
-    gluLookAt(camera[X], camera[Y], camera[Z],
-              target[X], target[Y], target[Z],
-              0, 1, 0);                            // Define the view model
-
+//
+//    gluLookAt(camera[X], camera[Y], camera[Z],
+//              target[X], target[Y], target[Z],
+//              0, 1, 0);                            // Define the view model
+//
+    shader.use();
+    updateMVP();
+    updateShaderMVP();
     if (bMsaa) {
         glEnable(GL_MULTISAMPLE_ARB);
     } else {
         glDisable(GL_MULTISAMPLE_ARB);
     }
 
-    // Set up the lights and enable them
-    SetUpLights();
+//    // Set up the lights and enable them
+//    SetUpLights();
+//
+//    if (bShader) {
+////        shader.enable();
+//    }
+//    // Draw something here
+//    glDisable(GL_LIGHTING);
 
-    if (bShader) {
-        shader.enable();
-    }
-    // Draw something here
-    glDisable(GL_LIGHTING);
-    DrawScene();
+//    glEnable(GL_DEPTH_TEST);
+    torus->render();
+//    DrawScene();
     shader.disable();
-    glEnable(GL_LIGHTING);
+//    glEnable(GL_LIGHTING);
 
     // Draw crosshair and locator in fps mode, or target when not in fps mode(fpsmode == 0).
     if (fpsmode == 0) {
@@ -97,8 +108,7 @@ void ProcessMouseClick(int button, int state, int x, int y) {
         cout << "LMB pressed. Switch on/off multisampling anti-alias.\n" << endl;
         strcpy(message, "LMB pressed. Switch on/off multisampling anti-alias.");
         glutPostRedisplay();
-    }
-    else if (button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN && fpsmode) {
+    } else if (button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN && fpsmode) {
 //        processPick(window);
         bShader = !bShader;
     }
@@ -383,7 +393,8 @@ void ProcessNormalKey(unsigned char k, int x, int y) {
             }
             break;
         }
-        default:break;
+        default:
+            break;
     }
 }
 
@@ -394,7 +405,7 @@ void ProcessSpecialKey(int k, int x, int y) {
             lightPosition0[Y] += 5;
             break;
         }
-        // Down arrow
+            // Down arrow
         case 103: {
             if (lightPosition0[Y] >= 10) {
                 lightPosition0[Y] -= 5;
@@ -437,28 +448,28 @@ void PrintStatus() {
     glMatrixMode(GL_PROJECTION);            // 选择投影矩阵
     glPushMatrix();                            // 保存原矩阵
     glLoadIdentity();                        // 装入单位矩阵
-    glOrtho(-640, 640, -360, 360, -1, 1);    // 设置裁减区域
+    glOrtho(-window[W] / 2, window[W] / 2, -window[H] / 2, window[H] / 2, -1, 1);    // 设置裁减区域
     glMatrixMode(GL_MODELVIEW);                // 选择Modelview矩阵
     glPushMatrix();                            // 保存原矩阵
     glLoadIdentity();                        // 装入单位矩阵
     glPushAttrib(GL_LIGHTING_BIT);
-    glRasterPos2f(-620, 340);
+    glRasterPos2f(20 - window[W] / 2, window[H] / 2 - 20);
     for (c = fpstext; *c != '\0'; c++) {
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *c);
     }
-    glRasterPos2f(400, 340);
+    glRasterPos2f(window[W] / 2 - 240, window[H] / 2 - 20);
     for (c = cameraPositionMessage; *c != '\0'; c++) {
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *c);
     }
-    glRasterPos2f(400, 305);
+    glRasterPos2f(window[W] / 2 - 240, window[H] / 2 - 55);
     for (c = targetPositionMessage; *c != '\0'; c++) {
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *c);
     }
-    glRasterPos2f(400, 270);
+    glRasterPos2f(window[W] / 2 - 240, window[H] / 2 - 90);
     for (c = cameraPolarPositonMessage; *c != '\0'; c++) {
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *c);
     }
-    glRasterPos2f(-620, -340);
+    glRasterPos2f(20 - window[W] / 2, 20 - window[H] / 2);
     for (c = message; *c != '\0'; c++) {
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *c);
     }
@@ -513,4 +524,35 @@ void SetBufferedObjects() {
     // 将1号顶点数组与第二个缓存（类型是数组缓存）绑定
     glBindBuffer(GL_ARRAY_BUFFER, colorBufferHandle);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+}
+
+void initVBO() {
+    torus = new VBOTorus(0.7f, 0.3f, 130, 130);
+}
+
+void setShader() {
+    updateMVP();
+
+    shader.setUniform("Kd", 0.1f, 1.0f, 0.3f);
+    shader.setUniform("Ld", 1.0f, 1.0f, 1.0f);
+
+    updateShaderMVP();
+}
+
+void updateMVP() {
+    model = mat4(1.0f);
+    model = glm::rotate(model, glm::radians(-35.0f), vec3(1.0f, 0.0f, 0.0f));
+    model = glm::rotate(model, glm::radians(angle), vec3(0.0f, 1.0f, 0.0f));
+    view = glm::lookAt(vec3(camera[X], camera[Y], camera[Z]), vec3(target[X], target[Y], target[Z]),
+                       vec3(0.0f, 1.0f, 0.0f));
+    projection = glm::perspective(45.0f, 1.7778f, 0.1f, 30000.0f);
+    angle += 0.5f;
+}
+
+void updateShaderMVP() {
+    mat4 mv = view * model;
+    shader.setUniform("LightPosition", view * vec4(0.0f, 0.0f, 10.0f, 1.0f));
+    shader.setUniform("ModelViewMatrix", mv);
+    shader.setUniform("NormalMatrix", mat3(vec3(mv[0]), vec3(mv[1]), vec3(mv[2])));
+    shader.setUniform("MVP", projection * mv);
 }

@@ -6,7 +6,8 @@ INCLUDE_DIRECTORIES(${OPENGL_INCLUDE_DIR})
 
 set(CMAKE_CXX_STANDARD 11)
 
-set(SOURCE_FILES main.cpp main.h global.h system.cpp system.h utility.cpp utility.h draw.cpp draw.h light.cpp light.h textfile.cpp textfile.h Shader.cpp Shader.h)
+set(SOURCE_FILES main.cpp main.h global.h system.cpp system.h utility.cpp utility.h draw.cpp draw.h light.cpp light.h
+        textfile.cpp textfile.h Shader.cpp Shader.h drawable.cpp drawable.h vbotorus.cpp vbotorus.h)
 
 include_directories(include)
 
