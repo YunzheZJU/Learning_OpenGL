@@ -8,19 +8,20 @@
 
 Shader shader = Shader();
 VBOTorus *torus;
+VBOTeapot *teapot;
 mat4 model;
 mat4 view;
 mat4 projection;
 GLfloat camera[3] = {0, 0, 5};                    // Position of camera
 GLfloat target[3] = {0, 0, 0};                    // Position of target of camera
 GLfloat camera_polar[3] = {5, -1.57f, 0};            // Polar coordinates of camera
-GLboolean bMsaa = GL_FALSE;                            // Switch of Multisampling anti-alias
-GLboolean bShader = GL_TRUE;                       // Switch of shader
+bool bMsaa = GL_FALSE;                            // Switch of Multisampling anti-alias
+bool bShader = GL_TRUE;                       // Switch of shader
 GLfloat camera_locator[3] = {0, -5, 10};            // Position of shadow of camera
-GLboolean bcamera = GL_TRUE;                        // Switch of camera/target control
-GLboolean bfocus = GL_TRUE;                            // Status of window focus
-GLboolean bmouse = GL_FALSE;                        // Whether mouse postion should be moved
-GLboolean bmsaa = GL_FALSE;                            // Switch of Multisampling anti-alias
+bool bcamera = GL_TRUE;                        // Switch of camera/target control
+bool bfocus = GL_TRUE;                            // Status of window focus
+bool bmouse = GL_FALSE;                        // Whether mouse postion should be moved
+bool bmsaa = GL_FALSE;                            // Switch of Multisampling anti-alias
 int fpsmode = 2;                                    // 0:off, 1:on, 2:waiting
 int window[2] = {1280, 720};                        // Window size
 int windowcenter[2];                                // Center of this window, to be updated
@@ -36,7 +37,7 @@ void Reshape(int width, int height) {
     if (height == 0) {                        // Prevent A Divide By Zero By
         height = 1;                            // Making Height Equal One
     }
-    glViewport(width / 2.0 - 640, height / 2.0 - 360, 1280, 720);
+    glViewport(static_cast<GLint>(width / 2.0 - 640), static_cast<GLint>(height / 2.0 - 360), 1280, 720);
     window[W] = width;
     window[H] = height;
     updateWindowcenter(window, windowcenter);
@@ -75,7 +76,8 @@ void Redraw() {
     }
     // Draw something here
     glEnable(GL_DEPTH_TEST);
-    torus->render();
+//    torus->render();
+    teapot->render();
 //    DrawScene();
     shader.disable();
 
@@ -134,17 +136,17 @@ void ProcessMouseMove(int x, int y) {
             bmouse = !bmouse;
         }
         if (y < window[H] * 0.25) {
-            y = window[H] * 0.25;
+            y = static_cast<int>(window[H] * 0.25);
             bmouse = !bmouse;
         } else if (y > window[H] * 0.75) {
-            y = window[H] * 0.75;
+            y = static_cast<int>(window[H] * 0.75);
             bmouse = !bmouse;
         }
         // 将新坐标与屏幕中心的差值换算为polar的变化
-        camera_polar[A] = (window[W] / 2 - x) * (180 / 180.0 * PI) / (window[W] / 4.0) *
-                          PANNING_PACE;            // Delta pixels * 180 degrees / (1/4 width) * PANNING_PACE
-        camera_polar[T] = (window[H] / 2 - y) * (90 / 180.0 * PI) / (window[H] / 4.0) *
-                          PANNING_PACE;            // Delta pixels * 90 degrees / (1/4 height) * PANNING_PACE
+        camera_polar[A] = static_cast<GLfloat>((window[W] / 2 - x) * (180 / 180.0 * PI) / (window[W] / 4.0) *
+                                               PANNING_PACE);            // Delta pixels * 180 degrees / (1/4 width) * PANNING_PACE
+        camera_polar[T] = static_cast<GLfloat>((window[H] / 2 - y) * (90 / 180.0 * PI) / (window[H] / 4.0) *
+                                               PANNING_PACE);            // Delta pixels * 90 degrees / (1/4 height) * PANNING_PACE
         // 移动光标
         if (bmouse) {
             SetCursorPos(glutGet(GLUT_WINDOW_X) + x, glutGet(GLUT_WINDOW_Y) + y);
@@ -480,52 +482,10 @@ void PrintStatus() {
     glEnable(GL_LIGHTING);
 }
 
-void SetBufferedObjects() {
-    float positionData[] = {
-            -1.0f, 1.0f, 0.0f,
-            1.0f, 1.0f, 0.0f,
-            1.0f, -1.0f, 0.0f,
-            1.0f, -1.0f, 0.0f,
-            -1.0f, -1.0f, 0.0f,
-            -1.0f, 1.0f, 0.0f
-    };
-    float texCoordData[] = {
-            0.0f, 1.0f, 1.0f,
-            1.0f, 1.0f, 1.0f,
-            1.0f, 0.0f, 1.0f,
-            1.0f, 0.0f, 1.0f,
-            0.0f, 0.0f, 1.0f,
-            0.0f, 1.0f, 1.0f
-    };
-    GLuint vboHandles[2];
-    // 申请两个缓存标识符
-    glGenBuffers(2, vboHandles);
-    // 两个标识符的值存到变量
-    GLuint positionBufferHandle = vboHandles[0];
-    GLuint colorBufferHandle = vboHandles[1];
-    // 为两个缓存分别指定缓存类型（GL_ARRAY_BUFFER, GL_UNIFORM_BUFFER or GL_ELEMENT_ARRAY_BUFFER），申请空间并塞入数据
-    glBindBuffer(GL_ARRAY_BUFFER, positionBufferHandle);
-    glBufferData(GL_ARRAY_BUFFER, 18 * sizeof(float), positionData, GL_STATIC_DRAW); // GL_STATIC_DRAW告诉OpenGL如何优化
-    glBindBuffer(GL_ARRAY_BUFFER, colorBufferHandle);
-    glBufferData(GL_ARRAY_BUFFER, 18 * sizeof(float), texCoordData, GL_STATIC_DRAW);
-
-    // 申请一个顶点数组标识符
-    glGenVertexArrays(1, &vaoHandle);
-    // 用标识符初始化顶点数组对象
-    glBindVertexArray(vaoHandle);
-    // 启用编号为0和1的顶点数组
-    glEnableVertexAttribArray(0);   // 给vertexPosition
-    glEnableVertexAttribArray(1);   // 给vertexColor
-    // 将0号顶点数组与第一个缓存（类型是数组缓存）绑定
-    glBindBuffer(GL_ARRAY_BUFFER, positionBufferHandle);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-    // 将1号顶点数组与第二个缓存（类型是数组缓存）绑定
-    glBindBuffer(GL_ARRAY_BUFFER, colorBufferHandle);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-}
-
 void initVBO() {
-    torus = new VBOTorus(0.7f, 0.3f, 130, 130);
+//    torus = new VBOTorus(0.7f, 0.3f, 130, 130);
+    mat4 transform = glm::translate(mat4(1.0f),vec3(0.0f,1.5f,0.25f));
+    teapot = new VBOTeapot(13, transform);
 }
 
 void setShader() {

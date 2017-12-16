@@ -13,6 +13,7 @@
 #include "textfile.h"
 #include "Shader.h"
 #include "vbotorus.h"
+#include "vboteapot.h"
 
 // Using namespace std for cout
 using namespace std;

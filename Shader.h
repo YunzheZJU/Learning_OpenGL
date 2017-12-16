@@ -31,8 +31,6 @@ namespace GLSLShader {
 
 class Shader {
 private:
-//    GLuint vertexShader;
-//    GLuint fragmentShader;
     GLuint shaderProgram;
     bool linked;
     map<string, int> uniformLocations;
@@ -42,16 +40,7 @@ private:
     bool fileExists(const string &fileName);
 
     string getExtension(const char *fileName);
-
 public:
-//    void init();
-//    void set(const char *vertexShaderFile, const char *fragmentShaderFile);
-//    void enable();
-//    void disable();
-//    void logShader(GLuint shader);
-//    void logProgram();
-//    void doAfterLinking();
-
     Shader();
 
     virtual ~Shader();
