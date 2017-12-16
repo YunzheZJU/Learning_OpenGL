@@ -358,6 +358,10 @@ void Shader::use() throw(GLSLProgramException) {
     glUseProgram(shaderProgram);
 }
 
+GLuint Shader::getProgram() {
+    return shaderProgram;
+}
+
 void Shader::disable() {
     glUseProgram(0);
 }

@@ -1,9 +1,12 @@
 #version 410
 
+subroutine vec3 shadeModelType(vec4 position, vec3 normal);
+subroutine uniform shadeModelType shadeModel;
+
 layout (location = 0) in vec3 VertexPosition;
 layout (location = 1) in vec3 VertexNormal;
 
-flat out vec3 LightIntensity;
+out vec3 LightIntensity;
 
 struct LightInfo {
     vec4 Position;      // Light position in eye coords.
@@ -30,8 +33,7 @@ void getEyeSpace(out vec3 norm, out vec4 position) {
     norm = normalize(NormalMatrix * VertexNormal);
     position = ModelViewMatrix * vec4(VertexPosition, 1.0);
 }
-
-vec3 phongModel(vec4 position, vec3 norm) {
+subroutine (shadeModelType) vec3 phongModel(vec4 position, vec3 norm) {
     vec3 s = normalize(vec3(Light.Position - position));
     vec3 v = normalize(-position.xyz);
     vec3 r = reflect(-s, norm);
@@ -44,12 +46,15 @@ vec3 phongModel(vec4 position, vec3 norm) {
     }
     return ambient + diffuse + spec;
 }
+subroutine (shadeModelType) vec3 diffuseOnly(vec4 position, vec3 norm){
+    vec3 s = normalize(vec3(Light.Position - position));
+    return Light.Ld * Material.Kd * max(dot(s, norm), 0.0);
+}
 
-void main()
-{
+void main() {
     vec3 eyeNorm;
     vec4 eyePosition;
     getEyeSpace(eyeNorm, eyePosition);
-    LightIntensity = phongModel(eyePosition, eyeNorm);
+    LightIntensity = shadeModel(eyePosition, eyeNorm);
     gl_Position = MVP * vec4(VertexPosition, 1.0);
 }

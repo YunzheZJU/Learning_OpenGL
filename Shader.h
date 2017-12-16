@@ -56,6 +56,8 @@ public:
 
     void use() throw(GLSLProgramException);
 
+    GLuint getProgram();
+
     void disable();
 
     void bindAttribLocation(GLuint location, const char *name);

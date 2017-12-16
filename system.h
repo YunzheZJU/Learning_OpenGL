@@ -35,7 +35,8 @@ void PrintStatus();
 void SetBufferedObjects();
 void initVBO();
 void setShader();
-void updateMVP();
+void updateMVPLeft();
+void updateMVPRight();
 void updateShaderMVP();
 
 #endif //GPUBASEDRENDERING_A1_SYSTEM_H

@@ -59,8 +59,6 @@ void Redraw() {
               0, 1, 0);                            // Define the view model
 
     shader.use();
-    updateMVP();
-    updateShaderMVP();
     if (bMsaa) {
         glEnable(GL_MULTISAMPLE_ARB);
     } else {
@@ -75,13 +73,26 @@ void Redraw() {
     } else {
         shader.disable();
     }
+
+    angle += 0.5f;
     // Draw something here
     glEnable(GL_DEPTH_TEST);
-//    torus->render();
-//    teapot->render();
-    ogre->render();
+    GLuint shaderProgram = shader.getProgram();
+    GLuint adsIndex = glGetSubroutineIndex(shaderProgram, GL_VERTEX_SHADER, "phongModel");
+    GLuint diffuseIndex = glGetSubroutineIndex(shaderProgram, GL_VERTEX_SHADER, "diffuseOnly");
+//    glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &adsIndex);
+    glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &diffuseIndex);
+    updateMVPLeft();
+    updateShaderMVP();
+    torus->render();
+//    glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &diffuseIndex);
+    glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &adsIndex);
+    updateMVPRight();
+    updateShaderMVP();
+    teapot->render();
+//    ogre->render();
 //    DrawScene();
-    shader.disable();
+    shader.disable();;
 
     // Draw crosshair and locator in fps mode, or target when in observing mode(fpsmode == 0).
     if (fpsmode == 0) {
@@ -485,14 +496,13 @@ void PrintStatus() {
 }
 
 void initVBO() {
-//    torus = new VBOTorus(0.7f, 0.3f, 130, 130);
-//    mat4 transform = glm::translate(mat4(1.0f),vec3(0.0f,1.5f,0.25f));
-//    teapot = new VBOTeapot(13, transform);
-    ogre = new VBOMesh("media/bs_ears.obj");
+    torus = new VBOTorus(0.7f, 0.3f, 130, 130);
+    teapot = new VBOTeapot(13, mat4(1.0f));
+//    ogre = new VBOMesh("media/bs_ears.obj");
 }
 
 void setShader() {
-    updateMVP();
+    updateMVPLeft();
 
     shader.setUniform("Material.Kd", 0.9f, 0.5f, 0.3f);
     shader.setUniform("Light.Ld", 1.0f, 1.0f, 1.0f);
@@ -505,15 +515,26 @@ void setShader() {
     updateShaderMVP();
 }
 
-void updateMVP() {
+void updateMVPLeft() {
     model = mat4(1.0f);
+    model = glm::translate(model, vec3(3.0f, 0.0f, 0.0f));
     model = glm::rotate(model, glm::radians(angle), vec3(0.0f, 1.0f, 0.0f));
     model = glm::rotate(model, glm::radians(-35.0f), vec3(1.0f, 0.0f, 0.0f));
     model = glm::rotate(model, glm::radians(35.0f), vec3(0.0f, 1.0f, 0.0f));
     view = glm::lookAt(vec3(camera[X], camera[Y], camera[Z]), vec3(target[X], target[Y], target[Z]),
                        vec3(0.0f, 1.0f, 0.0f));
     projection = glm::perspective(45.0f, 1.7778f, 0.1f, 30000.0f);
-    angle += 0.5f;
+}
+
+void updateMVPRight() {
+    model = mat4(1.0f);
+    model = glm::translate(model, vec3(-3.0f, 0.0f, 0.0f));
+    model = glm::rotate(model, glm::radians(angle), vec3(0.0f, 1.0f, 0.0f));
+    model = glm::rotate(model, glm::radians(-35.0f), vec3(1.0f, 0.0f, 0.0f));
+    model = glm::rotate(model, glm::radians(35.0f), vec3(0.0f, 1.0f, 0.0f));
+    view = glm::lookAt(vec3(camera[X], camera[Y], camera[Z]), vec3(target[X], target[Y], target[Z]),
+                       vec3(0.0f, 1.0f, 0.0f));
+    projection = glm::perspective(45.0f, 1.7778f, 0.1f, 30000.0f);
 }
 
 void updateShaderMVP() {
