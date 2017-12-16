@@ -9,6 +9,7 @@
 Shader shader = Shader();
 VBOTorus *torus;
 VBOTeapot *teapot;
+VBOMesh *ogre;
 mat4 model;
 mat4 view;
 mat4 projection;
@@ -77,7 +78,8 @@ void Redraw() {
     // Draw something here
     glEnable(GL_DEPTH_TEST);
 //    torus->render();
-    teapot->render();
+//    teapot->render();
+    ogre->render();
 //    DrawScene();
     shader.disable();
 
@@ -484,8 +486,9 @@ void PrintStatus() {
 
 void initVBO() {
 //    torus = new VBOTorus(0.7f, 0.3f, 130, 130);
-    mat4 transform = glm::translate(mat4(1.0f),vec3(0.0f,1.5f,0.25f));
-    teapot = new VBOTeapot(13, transform);
+//    mat4 transform = glm::translate(mat4(1.0f),vec3(0.0f,1.5f,0.25f));
+//    teapot = new VBOTeapot(13, transform);
+    ogre = new VBOMesh("media/bs_ears.obj");
 }
 
 void setShader() {

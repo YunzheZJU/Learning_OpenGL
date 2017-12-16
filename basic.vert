@@ -3,8 +3,7 @@
 layout (location = 0) in vec3 VertexPosition;
 layout (location = 1) in vec3 VertexNormal;
 
-out vec3 FrontColor;
-out vec3 BackColor;
+flat out vec3 LightIntensity;
 
 struct LightInfo {
     vec4 Position;      // Light position in eye coords.
@@ -51,7 +50,6 @@ void main()
     vec3 eyeNorm;
     vec4 eyePosition;
     getEyeSpace(eyeNorm, eyePosition);
-    FrontColor = phongModel(eyePosition, eyeNorm);
-    BackColor = phongModel(eyePosition, -eyeNorm);
+    LightIntensity = phongModel(eyePosition, eyeNorm);
     gl_Position = MVP * vec4(VertexPosition, 1.0);
 }

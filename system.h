@@ -14,6 +14,7 @@
 #include "Shader.h"
 #include "vbotorus.h"
 #include "vboteapot.h"
+#include "vbomesh.h"
 
 // Using namespace std for cout
 using namespace std;

@@ -1,15 +1,9 @@
 #version 410
 
-in vec3 FrontColor;
-in vec3 BackColor;
+flat in vec3 LightIntensity;
 
 layout( location = 0 ) out vec4 FragColor;
 
 void main() {
-    if (gl_FrontFacing) {
-        FragColor = vec4(FrontColor, 1.0);
-    }
-    else {
-        FragColor = vec4(BackColor, 1.0);
-    }
+    FragColor = vec4(LightIntensity, 1.0);
 }
