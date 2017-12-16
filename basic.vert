@@ -2,31 +2,22 @@
 
 layout (location = 0) in vec3 VertexPosition;
 layout (location = 1) in vec3 VertexNormal;
-layout (location = 2) in vec2 VertexTexCoord;
 
-out vec3 FrontColor;
-out vec3 BackColor;
-out vec2 TexCoord;
+out vec3 Color;
 
 struct LightInfo {
     vec4 Position;      // Light position in eye coords.
-    vec3 La;            // Ambient light intensity
-    vec3 Ld;            // Diffuse light intensity
-    vec3 Ls;            // S[ecular light intensity
+    vec3 Intensity;     // Light intensity
 };
-uniform LightInfo Light;
+uniform LightInfo lights[5];
 
-struct MaterialInfo {
-    vec3 Ka;            // Ambient reflectivity
-    vec3 Kd;            // Diffuse reflectivity
-    vec3 Ks;            // Specular reflectivity
-    float Shininess;    // Specular shininess factor
-};
-uniform MaterialInfo Material;
+uniform vec3 Ka;            // Ambient reflectivity
+uniform vec3 Kd;            // Diffuse reflectivity
+uniform vec3 Ks;            // Specular reflectivity
+uniform float Shininess;    // Specular shininess factor
 
 uniform mat4 ModelViewMatrix;
 uniform mat3 NormalMatrix;
-uniform mat4 ProjectionMatrix;
 uniform mat4 MVP;
 
 void getEyeSpace(out vec3 norm, out vec4 position) {
@@ -34,27 +25,22 @@ void getEyeSpace(out vec3 norm, out vec4 position) {
     position = ModelViewMatrix * vec4(VertexPosition, 1.0);
 }
 
-vec3 phongModel(vec4 position, vec3 norm) {
-    vec3 s = normalize(vec3(Light.Position - position));
-    vec3 v = normalize(-position.xyz);
+vec3 ads( int lightIndex, vec4 position, vec3 norm ) {
+    vec3 s = normalize(vec3(lights[lightIndex].Position - position));
+    vec3 v = normalize(vec3(-position));
     vec3 r = reflect(-s, norm);
-    vec3 ambient = Light.La * Material.Ka;
-    float sDotN = max(dot(s, norm), 0.0);
-    vec3 diffuse = Light.Ld * Material.Kd * sDotN;
-    vec3 spec = vec3(0.0);
-    if (sDotN > 0.0) {
-        spec = Light.Ls * Material.Ks * pow(max(dot(r, v), 0.0), Material.Shininess);
-    }
-    return ambient + diffuse + spec;
+    vec3 I = lights[lightIndex].Intensity;
+    return I * (Ka + Kd * max(dot(s, norm), 0.0) + Ks * pow(max(dot(r, v), 0.0), Shininess));
 }
 
 void main()
 {
     vec3 eyeNorm;
     vec4 eyePosition;
-    TexCoord = VertexTexCoord;
     getEyeSpace(eyeNorm, eyePosition);
-    FrontColor = phongModel(eyePosition, eyeNorm);
-    BackColor = phongModel(eyePosition, -eyeNorm);
+    Color = vec3(0.0);
+    for (int i = 0; i < 5; i++) {
+        Color += ads(i, eyePosition, eyeNorm);
+    }
     gl_Position = MVP * vec4(VertexPosition, 1.0);
 }
