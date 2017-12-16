@@ -11,12 +11,12 @@ VBOTorus *torus;
 mat4 model;
 mat4 view;
 mat4 projection;
-GLfloat camera[3] = {0, 0, 10};                    // Position of camera
+GLfloat camera[3] = {0, 0, 5};                    // Position of camera
 GLfloat target[3] = {0, 0, 0};                    // Position of target of camera
-GLfloat camera_polar[3] = {10, -1.57f, 0};            // Polar coordinates of camera
+GLfloat camera_polar[3] = {5, -1.57f, 0};            // Polar coordinates of camera
 GLboolean bMsaa = GL_FALSE;                            // Switch of Multisampling anti-alias
 GLboolean bShader = GL_TRUE;                       // Switch of shader
-GLfloat camera_locator[3] = {320, 0, 0};            // Position of shadow of camera
+GLfloat camera_locator[3] = {0, -5, 10};            // Position of shadow of camera
 GLboolean bcamera = GL_TRUE;                        // Switch of camera/target control
 GLboolean bfocus = GL_TRUE;                            // Status of window focus
 GLboolean bmouse = GL_FALSE;                        // Whether mouse postion should be moved
@@ -50,11 +50,12 @@ void Reshape(int width, int height) {
 void Redraw() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity();                        // Reset The Current Modelview Matrix
-//
-//    gluLookAt(camera[X], camera[Y], camera[Z],
-//              target[X], target[Y], target[Z],
-//              0, 1, 0);                            // Define the view model
-//
+
+    // 必须定义，以在固定管线中绘制物体
+    gluLookAt(camera[X], camera[Y], camera[Z],
+              target[X], target[Y], target[Z],
+              0, 1, 0);                            // Define the view model
+
     shader.use();
     updateMVP();
     updateShaderMVP();
@@ -64,37 +65,36 @@ void Redraw() {
         glDisable(GL_MULTISAMPLE_ARB);
     }
 
-//    // Set up the lights and enable them
-//    SetUpLights();
-//
-//    if (bShader) {
-////        shader.enable();
-//    }
-//    // Draw something here
-//    glDisable(GL_LIGHTING);
+    // Set up the lights and enable them
+    SetUpLights();
 
-//    glEnable(GL_DEPTH_TEST);
+    if (bShader) {
+        shader.use();
+    } else {
+        shader.disable();
+    }
+    // Draw something here
+    glEnable(GL_DEPTH_TEST);
     torus->render();
 //    DrawScene();
     shader.disable();
-//    glEnable(GL_LIGHTING);
 
-    // Draw crosshair and locator in fps mode, or target when not in fps mode(fpsmode == 0).
+    // Draw crosshair and locator in fps mode, or target when in observing mode(fpsmode == 0).
     if (fpsmode == 0) {
         glDisable(GL_DEPTH_TEST);
-        drawLocator(target, 2);
+        drawLocator(target, LOCATOR_SIZE);
         glEnable(GL_DEPTH_TEST);
     } else {
         drawCrosshair();
         camera_locator[X] = camera[X];
         camera_locator[Z] = camera[Z];
         glDisable(GL_DEPTH_TEST);
-//        drawLocator(camera_locator, 2);
+        drawLocator(camera_locator, LOCATOR_SIZE);
         glEnable(GL_DEPTH_TEST);
     }
 
     // Draw lights
-    drawLocator(lightPosition0, 1);
+    drawLocator(lightPosition0, LOCATOR_SIZE);
 
     // Show fps, message and other information
     PrintStatus();
@@ -171,7 +171,6 @@ void ProcessNormalKey(unsigned char k, int x, int y) {
         case 27: {
             cout << "Bye." << endl;
             exit(0);
-            break;
         }
             // 切换摄像机本体/焦点控制
         case 'Z':
@@ -198,7 +197,8 @@ void ProcessNormalKey(unsigned char k, int x, int y) {
                 }
                 // 鼠标位置居中
                 updateWindowcenter(window, windowcenter);
-                SetCursorPos(windowcenter[X] - window[W] * 0.125, windowcenter[Y]);
+                // windowcenter[X] - window[W] * 0.25 为什么要减？
+                SetCursorPos(windowcenter[X], windowcenter[Y]);
                 glutSetCursor(GLUT_CURSOR_NONE);
                 fpsmode = 1;
             } else {
@@ -219,12 +219,12 @@ void ProcessNormalKey(unsigned char k, int x, int y) {
                 target[Z] += sin(camera_polar[A]) * MOVING_PACE;
             } else {
                 if (bcamera) {
-                    camera_polar[A] -= 0.1;
+                    camera_polar[A] -= OBSERVING_PACE * 0.1;
                     updateCamera(camera, target, camera_polar);
                     cout << fixed << setprecision(1) << "A pressed.\n\tPosition of camera is set to (" <<
                          camera[X] << ", " << camera[Y] << ", " << camera[Z] << ")." << endl;
                 } else {
-                    target[X] -= 10;
+                    target[X] -= OBSERVING_PACE;
                     updatePolar(camera, target, camera_polar);
                     cout << fixed << setprecision(1) << "A pressed.\n\tPosition of camera target is set to (" <<
                          target[X] << ", " << target[Y] << ", " << target[Z] << ")." << endl;
@@ -243,12 +243,12 @@ void ProcessNormalKey(unsigned char k, int x, int y) {
                 target[Z] -= sin(camera_polar[A]) * MOVING_PACE;
             } else {
                 if (bcamera) {
-                    camera_polar[A] += 0.1;
+                    camera_polar[A] += OBSERVING_PACE * 0.1;
                     updateCamera(camera, target, camera_polar);
                     cout << fixed << setprecision(1) << "D pressed.\n\tPosition of camera is set to (" <<
                          camera[X] << ", " << camera[Y] << ", " << camera[Z] << ")." << endl;
                 } else {
-                    target[X] += 10;
+                    target[X] += OBSERVING_PACE;
                     updatePolar(camera, target, camera_polar);
                     cout << fixed << setprecision(1) << "D pressed.\n\tPosition of camera target is set to (" <<
                          target[X] << ", " << target[Y] << ", " << target[Z] << ")." << endl;
@@ -267,11 +267,11 @@ void ProcessNormalKey(unsigned char k, int x, int y) {
                 target[Z] -= cos(camera_polar[A]) * MOVING_PACE;
             } else {
                 if (bcamera) {
-                    camera[Y] += 10;
+                    camera[Y] += OBSERVING_PACE;
                     cout << fixed << setprecision(1) << "W pressed.\n\tPosition of camera is set to (" <<
                          camera[X] << ", " << camera[Y] << ", " << camera[Z] << ")." << endl;
                 } else {
-                    target[Y] += 10;
+                    target[Y] += OBSERVING_PACE;
                     updatePolar(camera, target, camera_polar);
                     cout << fixed << setprecision(1) << "W pressed.\n\tPosition of camera target is set to (" <<
                          target[X] << ", " << target[Y] << ", " << target[Z] << ")." << endl;
@@ -290,14 +290,12 @@ void ProcessNormalKey(unsigned char k, int x, int y) {
                 target[Z] += cos(camera_polar[A]) * MOVING_PACE;
             } else {
                 if (bcamera) {
-                    if (camera[Y] >= 10) {
-                        camera[Y] -= 10;
-                    }
+                    camera[Y] -= OBSERVING_PACE;
                     cout << fixed << setprecision(1) << "S pressed.\n\tPosition of camera is set to (" <<
                          camera[X] << ", " << camera[Y] << ", " << camera[Z] << ")." << endl;
                     strcpy(message, "S pressed. Watch carefully!");
                 } else {
-                    target[Y] -= 10;
+                    target[Y] -= OBSERVING_PACE;
                     updatePolar(camera, target, camera_polar);
                     cout << fixed << setprecision(1) << "S pressed.\n\tPosition of camera target is set to (" <<
                          target[X] << ", " << target[Y] << ", " << target[Z] << ")." << endl;
@@ -315,7 +313,7 @@ void ProcessNormalKey(unsigned char k, int x, int y) {
                      camera[X] << ", " << camera[Y] << ", " << camera[Z] << ")." << endl;
             } else {
                 strcpy(message, "Q pressed. Camera target is moving towards +Z!");
-                target[Z] += 5;
+                target[Z] += OBSERVING_PACE;
                 updatePolar(camera, target, camera_polar);
                 cout << fixed << setprecision(1) << "Q pressed.\n\tPosition of camera target is set to (" <<
                      target[X] << ", " << target[Y] << ", " << target[Z] << ")." << endl;
@@ -332,7 +330,7 @@ void ProcessNormalKey(unsigned char k, int x, int y) {
                      camera[X] << ", " << camera[Y] << ", " << camera[Z] << ")." << endl;
             } else {
                 strcpy(message, "E pressed. Camera target is moving towards -Z!");
-                target[Z] -= 5;
+                target[Z] -= OBSERVING_PACE;
                 updatePolar(camera, target, camera_polar);
                 cout << fixed << setprecision(1) << "E pressed.\n\tPosition of camera target is set to (" <<
                      target[X] << ", " << target[Y] << ", " << target[Z] << ")." << endl;
@@ -548,7 +546,7 @@ void updateMVP() {
     model = mat4(1.0f);
     model = glm::rotate(model, glm::radians(angle), vec3(0.0f, 1.0f, 0.0f));
     model = glm::rotate(model, glm::radians(-35.0f), vec3(1.0f, 0.0f, 0.0f));
-    model = glm::rotate(model, glm::radians(35.0f), vec3(0.0f,1.0f,0.0f));
+    model = glm::rotate(model, glm::radians(35.0f), vec3(0.0f, 1.0f, 0.0f));
     view = glm::lookAt(vec3(camera[X], camera[Y], camera[Z]), vec3(target[X], target[Y], target[Z]),
                        vec3(0.0f, 1.0f, 0.0f));
     projection = glm::perspective(45.0f, 1.7778f, 0.1f, 30000.0f);

@@ -11,7 +11,7 @@ GLfloat gray[4] = {0.4f, 0.4f, 0.4f, 1.0f};
 GLfloat white[4] = {1.0f, 1.0f, 1.0f, 1.0f};
 GLfloat black[4] = {0.0f, 0.0f, 0.0f, 1.0f};
 
-GLfloat lightPosition0[4] = {10.0f, 0, 10.0f, 1.0f};
+GLfloat lightPosition0[4] = {0.0f, 0.0f, 10.0f, 1.0f};
 GLfloat currentColor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
 GLfloat constantattenuation = 1.0f;
 

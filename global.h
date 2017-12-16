@@ -40,6 +40,12 @@ using glm::mat3;
 // Define Pi in math
 #define PI 3.1415926
 
+// Define size of locator
+#define LOCATOR_SIZE 0.1
+
+// Define rotating pace in observing mode
+#define OBSERVING_PACE 0.5
+
 // Define moving pace in fps mode
 #define MOVING_PACE 0.2
 

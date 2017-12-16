@@ -23,12 +23,12 @@ void drawLocator(GLfloat *center, GLfloat radius) {
     glTranslatef(center[X], center[Y], center[Z]);
     glBegin(GL_LINE_LOOP);
     for (int i = 0; i < 20; i++) {
-        glVertex3f(2 * radius * cos(2 * PI / 20 * i), radius * sin(2 * PI / 20 * i), 0);
+        glVertex3f(radius * cos(2 * PI / 20 * i), radius * sin(2 * PI / 20 * i), 0);
     }
     glEnd();
     glBegin(GL_LINE_LOOP);
     for (int i = 0; i < 20; i++) {
-        glVertex3f(2 * radius * cos(2 * PI / 20 * i), 0, radius * sin(2 * PI / 20 * i));
+        glVertex3f(radius * cos(2 * PI / 20 * i), 0, radius * sin(2 * PI / 20 * i));
     }
     glEnd();
     glBegin(GL_LINE_LOOP);

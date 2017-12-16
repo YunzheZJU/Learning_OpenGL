@@ -11,8 +11,8 @@ GLfloat cameramatrix[3][3];
 void cameraMakeZero(GLfloat *camera, GLfloat *target, GLfloat *polar) {
     camera[X] = target[X] = target[Z] = polar[T] = 0;
     camera[Y] = target[Y] = 0;
-    camera[Z] = polar[R] = 10;
-    polar[A] = -1.57;
+    camera[Z] = polar[R] = 5;
+    polar[A] = 0;
 }
 
 void updateCamera(GLfloat *camera, GLfloat *target, GLfloat *polar) {
