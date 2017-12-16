@@ -533,16 +533,22 @@ void initVBO() {
 void setShader() {
     updateMVP();
 
-    shader.setUniform("Kd", 0.1f, 1.0f, 0.3f);
-    shader.setUniform("Ld", 1.0f, 1.0f, 1.0f);
+    shader.setUniform("Material.Kd", 0.9f, 0.5f, 0.3f);
+    shader.setUniform("Light.Ld", 1.0f, 1.0f, 1.0f);
+    shader.setUniform("Material.Ka", 0.9f, 0.5f, 0.3f);
+    shader.setUniform("Light.La", 0.4f, 0.4f, 0.4f);
+    shader.setUniform("Material.Ks", 0.8f, 0.8f, 0.8f);
+    shader.setUniform("Light.Ls", 1.0f, 1.0f, 1.0f);
+    shader.setUniform("Material.Shininess", 100.0f);
 
     updateShaderMVP();
 }
 
 void updateMVP() {
     model = mat4(1.0f);
-    model = glm::rotate(model, glm::radians(-35.0f), vec3(1.0f, 0.0f, 0.0f));
     model = glm::rotate(model, glm::radians(angle), vec3(0.0f, 1.0f, 0.0f));
+    model = glm::rotate(model, glm::radians(-35.0f), vec3(1.0f, 0.0f, 0.0f));
+    model = glm::rotate(model, glm::radians(35.0f), vec3(0.0f,1.0f,0.0f));
     view = glm::lookAt(vec3(camera[X], camera[Y], camera[Z]), vec3(target[X], target[Y], target[Z]),
                        vec3(0.0f, 1.0f, 0.0f));
     projection = glm::perspective(45.0f, 1.7778f, 0.1f, 30000.0f);
@@ -551,7 +557,7 @@ void updateMVP() {
 
 void updateShaderMVP() {
     mat4 mv = view * model;
-    shader.setUniform("LightPosition", view * vec4(0.0f, 0.0f, 10.0f, 1.0f));
+    shader.setUniform("Light.Position", view * vec4(0.0f, 0.0f, 10.0f, 1.0f));   // 如果不乘view，LightPosition与相机共同运动，原因未知
     shader.setUniform("ModelViewMatrix", mv);
     shader.setUniform("NormalMatrix", mat3(vec3(mv[0]), vec3(mv[1]), vec3(mv[2])));
     shader.setUniform("MVP", projection * mv);
