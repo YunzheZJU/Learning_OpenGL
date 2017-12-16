@@ -12,7 +12,7 @@ void DrawScene() {
 //    glutSolidTeapot(1);
     glBindVertexArray(vaoHandle);
     // 从0号顶点数组中每取三个画一个三角形。
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
 void drawLocator(GLfloat *center, GLfloat radius) {

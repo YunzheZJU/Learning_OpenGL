@@ -473,14 +473,20 @@ void PrintStatus() {
 
 void SetBufferedObjects() {
     float positionData[] = {
-            -0.8f, -0.8f, 0.0f,
-            0.8f, -0.8f, 0.0f,
-            0.0f, 0.8f, 0.0f
+            -1.0f, 1.0f, 0.0f,
+            1.0f, 1.0f, 0.0f,
+            1.0f, -1.0f, 0.0f,
+            1.0f, -1.0f, 0.0f,
+            -1.0f, -1.0f, 0.0f,
+            -1.0f, 1.0f, 0.0f
     };
-    float colorData[] = {
-            1.0f, 0.0f, 0.0f,
-            0.0f, 1.0f, 0.0f,
-            0.0f, 0.0f, 1.0f
+    float texCoordData[] = {
+            0.0f, 1.0f, 1.0f,
+            1.0f, 1.0f, 1.0f,
+            1.0f, 0.0f, 1.0f,
+            1.0f, 0.0f, 1.0f,
+            0.0f, 0.0f, 1.0f,
+            0.0f, 1.0f, 1.0f
     };
     GLuint vboHandles[2];
     // 申请两个缓存标识符
@@ -490,9 +496,9 @@ void SetBufferedObjects() {
     GLuint colorBufferHandle = vboHandles[1];
     // 为两个缓存分别指定缓存类型（GL_ARRAY_BUFFER, GL_UNIFORM_BUFFER or GL_ELEMENT_ARRAY_BUFFER），申请空间并塞入数据
     glBindBuffer(GL_ARRAY_BUFFER, positionBufferHandle);
-    glBufferData(GL_ARRAY_BUFFER, 9 * sizeof(float), positionData, GL_STATIC_DRAW); // GL_STATIC_DRAW告诉OpenGL如何优化
+    glBufferData(GL_ARRAY_BUFFER, 18 * sizeof(float), positionData, GL_STATIC_DRAW); // GL_STATIC_DRAW告诉OpenGL如何优化
     glBindBuffer(GL_ARRAY_BUFFER, colorBufferHandle);
-    glBufferData(GL_ARRAY_BUFFER, 9 * sizeof(float), colorData, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 18 * sizeof(float), texCoordData, GL_STATIC_DRAW);
 
     // 申请一个顶点数组标识符
     glGenVertexArrays(1, &vaoHandle);
@@ -507,8 +513,4 @@ void SetBufferedObjects() {
     // 将1号顶点数组与第二个缓存（类型是数组缓存）绑定
     glBindBuffer(GL_ARRAY_BUFFER, colorBufferHandle);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-}
-
-void setShaders() {
-    shader.init();
 }

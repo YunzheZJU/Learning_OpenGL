@@ -29,6 +29,5 @@ void ProcessNormalKey(unsigned char k, int x, int y);
 void ProcessSpecialKey(int k, int x, int y);
 void PrintStatus();
 void SetBufferedObjects();
-void setShaders();
 
 #endif //GPUBASEDRENDERING_A1_SYSTEM_H

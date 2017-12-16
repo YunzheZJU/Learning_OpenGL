@@ -16,7 +16,6 @@ protected:
     GLuint shaderProgram;
     GLuint vertexShader;
     GLuint fragmentShader;
-    GLfloat angle;
 public:
     void init();
     void set(const char *vertexShaderFile, const char *fragmentShaderFile);
@@ -24,7 +23,7 @@ public:
     void disable();
     void logShader(GLuint shader);
     void logProgram();
-    GLuint getShaderProgram();
+    void doAfterLinking();
 };
 
 #endif //GPUBASEDRENDERING_A1_SHADER_H
