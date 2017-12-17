@@ -7,8 +7,9 @@
 #include "system.h"
 
 Shader shader = Shader();
-VBOTorus *torus_1;
-VBOTorus *torus_2;
+VBOPlane *plane;
+VBOTeapot *teapot;
+//VBOTorus *torus;
 mat4 model;
 mat4 view;
 mat4 projection;
@@ -26,6 +27,7 @@ int window[2] = {1280, 720};                        // Window size
 int windowcenter[2];                                // Center of this window, to be updated
 char message[70] = "Welcome!";                        // Message string to be shown
 //int focus = NONE;									// Focus object by clicking RMB
+GLfloat angle = 0.0f;
 
 void Idle() {
     glutPostRedisplay();
@@ -71,6 +73,7 @@ void Redraw() {
         shader.disable();
     }
 
+    angle += 0.5f;
     // Draw something here
     glEnable(GL_DEPTH_TEST);
     GLuint shaderProgram = shader.getProgram();
@@ -80,12 +83,12 @@ void Redraw() {
     glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &diffuseIndex);
     updateMVPLeft();
     updateShaderMVP();
-    torus_1->render();
+    teapot->render();
 //    glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &diffuseIndex);
     glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &adsIndex);
     updateMVPRight();
     updateShaderMVP();
-    torus_2->render();
+    plane->render();
 //    DrawScene();
     shader.disable();;
 
@@ -491,36 +494,47 @@ void PrintStatus() {
 }
 
 void initVBO() {
-    torus_1 = new VBOTorus(0.7f, 0.3f, 130, 130);
-    torus_2 = new VBOTorus(0.7f, 0.3f, 130, 130);
+    plane = new VBOPlane(50.0f, 50.0f, 1, 1);
+    teapot = new VBOTeapot(14, glm::mat4(1.0f));
+//    torus = new VBOTorus(0.7f * 2, 0.3f * 2, 50, 50);
 }
 
 void setShader() {
-    shader.setUniform("Ka", 0.9f, 0.5f, 0.3f);
-    shader.setUniform("Kd", 0.9f, 0.5f, 0.3f);
-    shader.setUniform("Ks", 0.8f, 0.8f, 0.8f);
-    shader.setUniform("Shininess", 100.0f);
-    shader.setUniform("LightIntensity", vec3(1.0f, 1.0f, 1.0f));
+//    shader.setUniform("Ka", 0.9f, 0.5f, 0.3f);
+//    shader.setUniform("Kd", 0.9f, 0.5f, 0.3f);
+//    shader.setUniform("Ks", 0.8f, 0.8f, 0.8f);
+//    shader.setUniform("Shininess", 100.0f);
+    shader.setUniform("LightIntensity", vec3(0.9f, 0.9f, 0.9f));
 
     updateShaderMVP();
 }
 
 void updateMVPLeft() {
-    shader.setUniform("LightPosition", view * vec4(0.0f, 0.0f, 4.0f, 1.0f));
     model = mat4(1.0f);
-    model = glm::translate(model, vec3(3.0f, 0.0f, 0.0f));
+    model = glm::translate(model, vec3(0.0f, 0.0f, 0.0f));
+    model = glm::rotate(model, glm::radians(angle), vec3(0.0f, 1.0f, 0.0f));
+    model = glm::rotate(model, glm::radians(-90.0f), vec3(1.0f, 0.0f, 0.0f));
     view = glm::lookAt(vec3(camera[X], camera[Y], camera[Z]), vec3(target[X], target[Y], target[Z]),
                        vec3(0.0f, 1.0f, 0.0f));
     projection = glm::perspective(45.0f, 1.7778f, 0.1f, 30000.0f);
+    shader.setUniform("LightPosition", view * vec4(0.0f, 0.0f, 10.0f, 1.0f));
+    shader.setUniform("Kd", 0.9f, 0.5f, 0.3f);
+    shader.setUniform("Ks", 0.95f, 0.95f, 0.95f);
+    shader.setUniform("Ka", 0.1f, 0.1f, 0.1f);
+    shader.setUniform("Shininess", 100.0f);
 }
 
 void updateMVPRight() {
-    shader.setUniform("LightPosition", view * vec4(0.0f, 0.0f, 4.0f, 0.0f));
     model = mat4(1.0f);
-    model = glm::translate(model, vec3(-3.0f, 0.0f, 0.0f));
+    model = glm::translate(model, vec3(0.0f, -0.45f, 0.0f));
     view = glm::lookAt(vec3(camera[X], camera[Y], camera[Z]), vec3(target[X], target[Y], target[Z]),
                        vec3(0.0f, 1.0f, 0.0f));
     projection = glm::perspective(45.0f, 1.7778f, 0.1f, 30000.0f);
+    shader.setUniform("LightPosition", view * vec4(0.0f, 0.0f, 10.0f, 1.0f));
+    shader.setUniform("Kd", 0.7f, 0.7f, 0.7f);
+    shader.setUniform("Ks", 0.9f, 0.9f, 0.9f);
+    shader.setUniform("Ka", 0.1f, 0.1f, 0.1f);
+    shader.setUniform("Shininess", 180.0f);
 }
 
 void updateShaderMVP() {

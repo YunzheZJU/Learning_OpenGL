@@ -15,6 +15,7 @@
 #include "vbotorus.h"
 #include "vboteapot.h"
 #include "vbomesh.h"
+#include "vboplane.h"
 
 // Using namespace std for cout
 using namespace std;
