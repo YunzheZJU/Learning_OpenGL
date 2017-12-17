@@ -35,9 +35,10 @@ void ProcessSpecialKey(int k, int x, int y);
 void PrintStatus();
 void SetBufferedObjects();
 void initVBO();
-void setShader();
-void updateMVPLeft();
-void updateMVPRight();
+void setShaderMVP();
+void updateMVPOne();
+void updateMVPTwo();
+void updateMVPThree();
 void updateShaderMVP();
 
 #endif //GPUBASEDRENDERING_A1_SYSTEM_H

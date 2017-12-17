@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
     }
 
     initVBO();
-    setShader();
+    setShaderMVP();
 
     glutMainLoop();
 
