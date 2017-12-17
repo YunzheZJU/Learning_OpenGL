@@ -7,28 +7,25 @@
 #include "system.h"
 
 Shader shader = Shader();
-VBOTorus *torus;
-VBOTeapot *teapot;
-VBOMesh *ogre;
+VBOTorus *torus_1;
+VBOTorus *torus_2;
 mat4 model;
 mat4 view;
 mat4 projection;
 GLfloat camera[3] = {0, 0, 5};                    // Position of camera
 GLfloat target[3] = {0, 0, 0};                    // Position of target of camera
 GLfloat camera_polar[3] = {5, -1.57f, 0};            // Polar coordinates of camera
-bool bMsaa = GL_FALSE;                            // Switch of Multisampling anti-alias
-bool bShader = GL_TRUE;                       // Switch of shader
+bool bMsaa = false;                            // Switch of Multisampling anti-alias
+bool bShader = true;                       // Switch of shader
 GLfloat camera_locator[3] = {0, -5, 10};            // Position of shadow of camera
-bool bcamera = GL_TRUE;                        // Switch of camera/target control
-bool bfocus = GL_TRUE;                            // Status of window focus
-bool bmouse = GL_FALSE;                        // Whether mouse postion should be moved
-bool bmsaa = GL_FALSE;                            // Switch of Multisampling anti-alias
+bool bcamera = true;                        // Switch of camera/target control
+bool bfocus = true;                            // Status of window focus
+bool bmouse = false;                        // Whether mouse postion should be moved
 int fpsmode = 2;                                    // 0:off, 1:on, 2:waiting
 int window[2] = {1280, 720};                        // Window size
 int windowcenter[2];                                // Center of this window, to be updated
 char message[70] = "Welcome!";                        // Message string to be shown
 //int focus = NONE;									// Focus object by clicking RMB
-GLfloat angle = 0.0f;
 
 void Idle() {
     glutPostRedisplay();
@@ -74,7 +71,6 @@ void Redraw() {
         shader.disable();
     }
 
-    angle += 0.5f;
     // Draw something here
     glEnable(GL_DEPTH_TEST);
     GLuint shaderProgram = shader.getProgram();
@@ -84,13 +80,12 @@ void Redraw() {
     glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &diffuseIndex);
     updateMVPLeft();
     updateShaderMVP();
-    torus->render();
+    torus_1->render();
 //    glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &diffuseIndex);
     glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &adsIndex);
     updateMVPRight();
     updateShaderMVP();
-    teapot->render();
-//    ogre->render();
+    torus_2->render();
 //    DrawScene();
     shader.disable();;
 
@@ -496,42 +491,33 @@ void PrintStatus() {
 }
 
 void initVBO() {
-    torus = new VBOTorus(0.7f, 0.3f, 130, 130);
-    teapot = new VBOTeapot(13, mat4(1.0f));
-//    ogre = new VBOMesh("media/bs_ears.obj");
+    torus_1 = new VBOTorus(0.7f, 0.3f, 130, 130);
+    torus_2 = new VBOTorus(0.7f, 0.3f, 130, 130);
 }
 
 void setShader() {
-    updateMVPLeft();
-
-    shader.setUniform("Material.Kd", 0.9f, 0.5f, 0.3f);
-    shader.setUniform("Light.Ld", 1.0f, 1.0f, 1.0f);
-    shader.setUniform("Material.Ka", 0.9f, 0.5f, 0.3f);
-    shader.setUniform("Light.La", 0.4f, 0.4f, 0.4f);
-    shader.setUniform("Material.Ks", 0.8f, 0.8f, 0.8f);
-    shader.setUniform("Light.Ls", 1.0f, 1.0f, 1.0f);
-    shader.setUniform("Material.Shininess", 100.0f);
+    shader.setUniform("Ka", 0.9f, 0.5f, 0.3f);
+    shader.setUniform("Kd", 0.9f, 0.5f, 0.3f);
+    shader.setUniform("Ks", 0.8f, 0.8f, 0.8f);
+    shader.setUniform("Shininess", 100.0f);
+    shader.setUniform("LightIntensity", vec3(1.0f, 1.0f, 1.0f));
 
     updateShaderMVP();
 }
 
 void updateMVPLeft() {
+    shader.setUniform("LightPosition", view * vec4(0.0f, 0.0f, 4.0f, 1.0f));
     model = mat4(1.0f);
     model = glm::translate(model, vec3(3.0f, 0.0f, 0.0f));
-    model = glm::rotate(model, glm::radians(angle), vec3(0.0f, 1.0f, 0.0f));
-    model = glm::rotate(model, glm::radians(-35.0f), vec3(1.0f, 0.0f, 0.0f));
-    model = glm::rotate(model, glm::radians(35.0f), vec3(0.0f, 1.0f, 0.0f));
     view = glm::lookAt(vec3(camera[X], camera[Y], camera[Z]), vec3(target[X], target[Y], target[Z]),
                        vec3(0.0f, 1.0f, 0.0f));
     projection = glm::perspective(45.0f, 1.7778f, 0.1f, 30000.0f);
 }
 
 void updateMVPRight() {
+    shader.setUniform("LightPosition", view * vec4(0.0f, 0.0f, 4.0f, 0.0f));
     model = mat4(1.0f);
     model = glm::translate(model, vec3(-3.0f, 0.0f, 0.0f));
-    model = glm::rotate(model, glm::radians(angle), vec3(0.0f, 1.0f, 0.0f));
-    model = glm::rotate(model, glm::radians(-35.0f), vec3(1.0f, 0.0f, 0.0f));
-    model = glm::rotate(model, glm::radians(35.0f), vec3(0.0f, 1.0f, 0.0f));
     view = glm::lookAt(vec3(camera[X], camera[Y], camera[Z]), vec3(target[X], target[Y], target[Z]),
                        vec3(0.0f, 1.0f, 0.0f));
     projection = glm::perspective(45.0f, 1.7778f, 0.1f, 30000.0f);
@@ -539,7 +525,6 @@ void updateMVPRight() {
 
 void updateShaderMVP() {
     mat4 mv = view * model;
-    shader.setUniform("Light.Position", view * vec4(0.0f, 0.0f, 10.0f, 1.0f));   // 如果不乘view，LightPosition与相机共同运动，原因未知
     shader.setUniform("ModelViewMatrix", mv);
     shader.setUniform("NormalMatrix", mat3(vec3(mv[0]), vec3(mv[1]), vec3(mv[2])));
     shader.setUniform("MVP", projection * mv);
