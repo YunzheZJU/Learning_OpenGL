@@ -7,12 +7,12 @@
 #include "system.h"
 
 Shader shader = Shader();
-//VBOPlane *plane;
+VBOPlane *plane;
 VBOTeapot *teapot;
 //VBOTorus *torus;
 //VBOCube *cube;
 //VBOMesh *ogre;
-SkyBox *sky;
+//SkyBox *sky;
 mat4 model;
 mat4 view;
 mat4 projection;
@@ -86,12 +86,12 @@ void Redraw() {
 //    glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &diffuseIndex);
     updateMVPLeft();
 //    cube->render();
-    sky->render();
+//    sky->render();
+    teapot->render();
 //    glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &diffuseIndex);
 //    glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &adsIndex);
     updateMVPRight();
-    teapot->render();
-//    plane->render();
+    plane->render();
 //    DrawScene();
     shader.disable();;
 
@@ -497,15 +497,22 @@ void PrintStatus() {
 }
 
 void initVBO() {
-//    plane = new VBOPlane(50.0f, 50.0f, 1, 1);
+    plane = new VBOPlane(50.0f, 50.0f, 1, 1);
     teapot = new VBOTeapot(14, glm::mat4(1.0f));
 //    torus = new VBOTorus(0.7f * 2, 0.3f * 2, 50, 50);
 //    cube = new VBOCube();
 //    ogre = new VBOMesh("media/bs_ears.obj", false, true, true);
-    sky = new SkyBox();
+//    sky = new SkyBox();
 }
 
 void setShader() {
+    vec3 projPos = vec3(0.0f, 15.0f, 10.0f);
+    vec3 projAt = vec3(0.0f, 0.0f, 0.0f);
+    vec3 projUp = vec3(0.0f, 1.0f, 0.0f);
+    mat4 projView = glm::lookAt(projPos, projAt, projUp);
+    mat4 projProj = glm::perspective(glm::radians(30.0f), 1.0f, 0.2f, 1000.0f);
+    mat4 projScaleTrans = glm::translate(mat4(), vec3(0.5f)) * glm::scale(mat4(), vec3(0.5f));
+    shader.setUniform("ProjectorMatrix", projScaleTrans * projProj * projView);
 //    shader.setUniform("Ka", 0.9f, 0.5f, 0.3f);
 //    shader.setUniform("Kd", 0.9f, 0.5f, 0.3f);
 //    shader.setUniform("Ks", 0.8f, 0.8f, 0.8f);
@@ -513,50 +520,56 @@ void setShader() {
 //    shader.setUniform("Light.Intensity", vec3(1.0f, 1.0f, 1.0f));
 
     updateShaderMVP();
+    // Load texture file
+    glActiveTexture(GL_TEXTURE0);
+    TGAIO::loadTex("media/texture/flower.tga");
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
-    loadCubeMap("media/texture/cubemap_night/night");
+    shader.setUniform("Light.Position", vec4(0.0f, 15.0f, 10.0f, 1.0f));
+    shader.setUniform("Light.Intensity", vec3(1.0f, 1.0f, 1.0f));
 }
 
 void updateMVPLeft() {
     model = mat4(1.0f);
-    model = glm::translate(model, vec3(0.0f, 0.0f, 0.0f));
+    model = glm::translate(model, vec3(0.0f, -1.45f, 0.0f));
+    model = glm::rotate(model, glm::radians(angle), vec3(0.0f, 1.0f, 0.0f));
+    model = glm::rotate(model, glm::radians(-90.0f), vec3(1.0f, 0.0f, 0.0f));
     view = glm::lookAt(vec3(camera[X], camera[Y], camera[Z]), vec3(target[X], target[Y], target[Z]),
                        vec3(0.0f, 1.0f, 0.0f));
     projection = glm::perspective(45.0f, 1.7778f, 0.1f, 30000.0f);
 
-    shader.setUniform("WorldCameraPosition", vec3(camera[X], camera[Y], camera[Z]));
-    shader.setUniform("DrawSkyBox", true);
+//    shader.setUniform("WorldCameraPosition", vec3(camera[X], camera[Y], camera[Z]));
+//    shader.setUniform("DrawSkyBox", true);
 //    shader.setUniform("Light.Position", view * vec4(0.0f, 5.0f, 10.0f, 1.0f));
-//    shader.setUniform("Material.Kd", 0.9f, 0.5f, 0.3f);
-//    shader.setUniform("Material.Ks", 0.95f, 0.95f, 0.95f);
-//    shader.setUniform("Material.Ka", 0.1f, 0.1f, 0.1f);
-//    shader.setUniform("Material.Shininess", 100.0f);
+    shader.setUniform("Material.Kd", 0.5f, 0.2f, 0.1f);
+    shader.setUniform("Material.Ks", 0.95f, 0.95f, 0.95f);
+    shader.setUniform("Material.Ka", 0.1f, 0.1f, 0.1f);
+    shader.setUniform("Material.Shininess", 100.0f);
     updateShaderMVP();
 }
 
 void updateMVPRight() {
     model = mat4(1.0f);
     model = glm::translate(model, vec3(0.0f, -1.45f, 0.0f));
-    model = glm::rotate(model, glm::radians(angle), vec3(0.0f, 1.0f, 0.0f));
-    model = glm::rotate(model, glm::radians(-90.0f), vec3(1.0f, 0.0f, 0.0f));
 
-    shader.setUniform("DrawSkyBox", false);
-    shader.setUniform("Material.Eta", 0.94f);
-    shader.setUniform("Material.ReflectionFactor", 0.1f);
+//    shader.setUniform("DrawSkyBox", false);
+//    shader.setUniform("Material.Eta", 0.94f);
+//    shader.setUniform("Material.ReflectionFactor", 0.1f);
 //    shader.setUniform("MaterialColor", vec4(0.5f, 0.5f, 0.5f, 1.0f));
 //    shader.setUniform("ReflectFactor", 0.85f);
 //    shader.setUniform("Light.Position", view * vec4(0.0f, 0.0f, 10.0f, 1.0f));
-//    shader.setUniform("Material.Kd", 0.7f, 0.7f, 0.7f);
-//    shader.setUniform("Material.Ks", 0.9f, 0.9f, 0.9f);
-//    shader.setUniform("Material.Ka", 0.1f, 0.1f, 0.1f);
-//    shader.setUniform("Material.Shininess", 180.0f);
+    shader.setUniform("Material.Kd", 0.4f, 0.4f, 0.4f);
+    shader.setUniform("Material.Ks", 0.0f, 0.0f, 0.0f);
+    shader.setUniform("Material.Ka", 0.1f, 0.1f, 0.1f);
+    shader.setUniform("Material.Shininess", 1.0f);
     updateShaderMVP();
 }
 
 void updateShaderMVP() {
     mat4 mv = view * model;
-//    shader.setUniform("ModelViewMatrix", mv);
-//    shader.setUniform("NormalMatrix", mat3(vec3(mv[0]), vec3(mv[1]), vec3(mv[2])));
+    shader.setUniform("ModelViewMatrix", mv);
+    shader.setUniform("NormalMatrix", mat3(vec3(mv[0]), vec3(mv[1]), vec3(mv[2])));
     shader.setUniform("ModelMatrix", model);
     shader.setUniform("MVP", projection * mv);
 }
