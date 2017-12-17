@@ -541,8 +541,10 @@ void updateMVPRight() {
     model = glm::rotate(model, glm::radians(-90.0f), vec3(1.0f, 0.0f, 0.0f));
 
     shader.setUniform("DrawSkyBox", false);
-    shader.setUniform("MaterialColor", vec4(0.5f, 0.5f, 0.5f, 1.0f));
-    shader.setUniform("ReflectFactor", 0.85f);
+    shader.setUniform("Material.Eta", 0.94f);
+    shader.setUniform("Material.ReflectionFactor", 0.1f);
+//    shader.setUniform("MaterialColor", vec4(0.5f, 0.5f, 0.5f, 1.0f));
+//    shader.setUniform("ReflectFactor", 0.85f);
 //    shader.setUniform("Light.Position", view * vec4(0.0f, 0.0f, 10.0f, 1.0f));
 //    shader.setUniform("Material.Kd", 0.7f, 0.7f, 0.7f);
 //    shader.setUniform("Material.Ks", 0.9f, 0.9f, 0.9f);
