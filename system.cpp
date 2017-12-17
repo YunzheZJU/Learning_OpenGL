@@ -76,16 +76,16 @@ void Redraw() {
     angle += 0.5f;
     // Draw something here
     glEnable(GL_DEPTH_TEST);
-    GLuint shaderProgram = shader.getProgram();
-    GLuint adsIndex = glGetSubroutineIndex(shaderProgram, GL_VERTEX_SHADER, "phongModel");
-    GLuint diffuseIndex = glGetSubroutineIndex(shaderProgram, GL_VERTEX_SHADER, "diffuseOnly");
+//    GLuint shaderProgram = shader.getProgram();
+//    GLuint adsIndex = glGetSubroutineIndex(shaderProgram, GL_VERTEX_SHADER, "phongModel");
+//    GLuint diffuseIndex = glGetSubroutineIndex(shaderProgram, GL_VERTEX_SHADER, "diffuseOnly");
 //    glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &adsIndex);
-    glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &diffuseIndex);
+//    glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &diffuseIndex);
     updateMVPLeft();
     updateShaderMVP();
     teapot->render();
 //    glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &diffuseIndex);
-    glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &adsIndex);
+//    glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &adsIndex);
     updateMVPRight();
     updateShaderMVP();
     plane->render();
