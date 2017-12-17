@@ -4,8 +4,8 @@ in vec3 Position;
 in vec3 Normal;
 in vec2 TexCoord;
 
-uniform sampler2D BrickTex;
-uniform sampler2D MossTex;
+uniform sampler2D BaseTex;
+uniform sampler2D AlphaTex;
 
 struct LightInfo {
     vec4 Position;      // Light position in eye coords.
@@ -23,19 +23,28 @@ uniform MaterialInfo Material;
 
 layout( location = 0 ) out vec4 FragColor;
 
-void phongModel(vec3 pos, vec3 norm, out vec3 ambAndDiff, out vec3 spec) {
+vec3 phongModel(vec3 pos, vec3 norm) {
     vec3 s = normalize(vec3(Light.Position) - pos);
     vec3 v = normalize(vec3(-pos));
     vec3 h = normalize(v + s);
-    spec = Light.Intensity * Material.Ks * pow(max(0.0, dot(h, norm)), Material.Shininess);
-    ambAndDiff = Light.Intensity * Material.Ka + Light.Intensity * Material.Kd * max(0.0, dot(s, norm));
+    vec3 spec = Light.Intensity * Material.Ks * pow(max(0.0, dot(h, norm)), Material.Shininess);
+    vec3 ambAndDiff = Light.Intensity * Material.Ka + Light.Intensity * Material.Kd * max(0.0, dot(s, norm));
+    return ambAndDiff + spec;
 }
 
 void main() {
     vec3 ambAndDiff, spec;
-    vec4 brickTexColor = texture(BrickTex, TexCoord);
-    vec4 mossTexColor = texture(MossTex, TexCoord);
-    phongModel(Position, Normal, ambAndDiff, spec);
-    vec4 texColor = mix(brickTexColor, mossTexColor, mossTexColor.a);
-    FragColor = vec4(ambAndDiff, 1.0) * texColor + vec4(spec, 1.0);
+    vec4 baseColor = texture(BaseTex, TexCoord);
+    vec4 alphaMap = texture(AlphaTex, TexCoord);
+    if (alphaMap.a < 0.15) {
+        discard;
+    }
+    else {
+        if (gl_FrontFacing) {
+            FragColor = vec4(phongModel(Position, Normal), 1.0) * baseColor;
+        }
+        else {
+            FragColor = vec4(phongModel(Position, -Normal), 1.0) * baseColor;
+        }
+    }
 }

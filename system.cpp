@@ -8,9 +8,9 @@
 
 Shader shader = Shader();
 //VBOPlane *plane;
-//VBOTeapot *teapot;
+VBOTeapot *teapot;
 //VBOTorus *torus;
-VBOCube *cube;
+//VBOCube *cube;
 mat4 model;
 mat4 view;
 mat4 projection;
@@ -84,7 +84,8 @@ void Redraw() {
 //    glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &diffuseIndex);
     updateMVPLeft();
     updateShaderMVP();
-    cube->render();
+//    cube->render();
+    teapot->render();
 //    glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &diffuseIndex);
 //    glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &adsIndex);
 //    updateMVPRight();
@@ -496,9 +497,9 @@ void PrintStatus() {
 
 void initVBO() {
 //    plane = new VBOPlane(50.0f, 50.0f, 1, 1);
-//    teapot = new VBOTeapot(14, glm::mat4(1.0f));
+    teapot = new VBOTeapot(14, glm::mat4(1.0f));
 //    torus = new VBOTorus(0.7f * 2, 0.3f * 2, 50, 50);
-    cube = new VBOCube();
+//    cube = new VBOCube();
 }
 
 void setShader() {
@@ -517,8 +518,8 @@ void setShader() {
     // Load moss texture file into channel 1
     glActiveTexture(GL_TEXTURE1);
     TGAIO::loadTex("media/texture/moss.tga");
-    shader.setUniform("BrickTex", 0);
-    shader.setUniform("MossTex", 1);
+    shader.setUniform("BaseTex", 0);
+    shader.setUniform("AlphaTex", 1);
 }
 
 void updateMVPLeft() {
