@@ -16,6 +16,8 @@
 #include "vboteapot.h"
 #include "vbomesh.h"
 #include "vboplane.h"
+#include "vbocube.h"
+#include "tgaio.h"
 
 // Using namespace std for cout
 using namespace std;

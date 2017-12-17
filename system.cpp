@@ -7,9 +7,10 @@
 #include "system.h"
 
 Shader shader = Shader();
-VBOPlane *plane;
-VBOTeapot *teapot;
+//VBOPlane *plane;
+//VBOTeapot *teapot;
 //VBOTorus *torus;
+VBOCube *cube;
 mat4 model;
 mat4 view;
 mat4 projection;
@@ -83,12 +84,12 @@ void Redraw() {
 //    glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &diffuseIndex);
     updateMVPLeft();
     updateShaderMVP();
-    teapot->render();
+    cube->render();
 //    glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &diffuseIndex);
 //    glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &adsIndex);
-    updateMVPRight();
-    updateShaderMVP();
-    plane->render();
+//    updateMVPRight();
+//    updateShaderMVP();
+//    plane->render();
 //    DrawScene();
     shader.disable();;
 
@@ -494,9 +495,10 @@ void PrintStatus() {
 }
 
 void initVBO() {
-    plane = new VBOPlane(50.0f, 50.0f, 1, 1);
-    teapot = new VBOTeapot(14, glm::mat4(1.0f));
+//    plane = new VBOPlane(50.0f, 50.0f, 1, 1);
+//    teapot = new VBOTeapot(14, glm::mat4(1.0f));
 //    torus = new VBOTorus(0.7f * 2, 0.3f * 2, 50, 50);
+    cube = new VBOCube();
 }
 
 void setShader() {
@@ -504,12 +506,34 @@ void setShader() {
 //    shader.setUniform("Kd", 0.9f, 0.5f, 0.3f);
 //    shader.setUniform("Ks", 0.8f, 0.8f, 0.8f);
 //    shader.setUniform("Shininess", 100.0f);
-    shader.setUniform("LightIntensity", vec3(0.9f, 0.9f, 0.9f));
-    shader.setUniform("Fog.maxDist", 30.0f );
-    shader.setUniform("Fog.minDist", 1.0f );
-    shader.setUniform("Fog.color", vec3(0.5f,0.5f,0.5f) );
+    shader.setUniform("Light.Intensity", vec3(1.0f, 1.0f, 1.0f));
 
     updateShaderMVP();
+
+    // Load texture file
+    GLint w, h;
+    glActiveTexture(GL_TEXTURE0);
+    GLubyte *data = TGAIO::read("media/texture/brick1.tga", w, h);
+
+    GLuint texID;
+    glGenTextures(1, &texID);
+
+    glBindTexture(GL_TEXTURE_2D, texID);
+#ifdef __APPLE__
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+#else
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, w, h);
+#endif
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    delete[] data;
+
+#ifdef __APPLE__
+    // Set the sampler uniform
+    prog.setUniform("Tex1", 0);
+#endif
 }
 
 void updateMVPLeft() {
@@ -520,11 +544,11 @@ void updateMVPLeft() {
     view = glm::lookAt(vec3(camera[X], camera[Y], camera[Z]), vec3(target[X], target[Y], target[Z]),
                        vec3(0.0f, 1.0f, 0.0f));
     projection = glm::perspective(45.0f, 1.7778f, 0.1f, 30000.0f);
-    shader.setUniform("LightPosition", view * vec4(0.0f, 0.0f, 10.0f, 1.0f));
-    shader.setUniform("Kd", 0.9f, 0.5f, 0.3f);
-    shader.setUniform("Ks", 0.95f, 0.95f, 0.95f);
-    shader.setUniform("Ka", 0.1f, 0.1f, 0.1f);
-    shader.setUniform("Shininess", 100.0f);
+    shader.setUniform("Light.Position", view * vec4(0.0f, 5.0f, 10.0f, 1.0f));
+    shader.setUniform("Material.Kd", 0.9f, 0.5f, 0.3f);
+    shader.setUniform("Material.Ks", 0.95f, 0.95f, 0.95f);
+    shader.setUniform("Material.Ka", 0.1f, 0.1f, 0.1f);
+    shader.setUniform("Material.Shininess", 100.0f);
 }
 
 void updateMVPRight() {
@@ -533,11 +557,11 @@ void updateMVPRight() {
     view = glm::lookAt(vec3(camera[X], camera[Y], camera[Z]), vec3(target[X], target[Y], target[Z]),
                        vec3(0.0f, 1.0f, 0.0f));
     projection = glm::perspective(45.0f, 1.7778f, 0.1f, 30000.0f);
-    shader.setUniform("LightPosition", view * vec4(0.0f, 0.0f, 10.0f, 1.0f));
-    shader.setUniform("Kd", 0.7f, 0.7f, 0.7f);
-    shader.setUniform("Ks", 0.9f, 0.9f, 0.9f);
-    shader.setUniform("Ka", 0.1f, 0.1f, 0.1f);
-    shader.setUniform("Shininess", 180.0f);
+    shader.setUniform("Light.Position", view * vec4(0.0f, 0.0f, 10.0f, 1.0f));
+    shader.setUniform("Material.Kd", 0.7f, 0.7f, 0.7f);
+    shader.setUniform("Material.Ks", 0.9f, 0.9f, 0.9f);
+    shader.setUniform("Material.Ka", 0.1f, 0.1f, 0.1f);
+    shader.setUniform("Material.Shininess", 180.0f);
 }
 
 void updateShaderMVP() {

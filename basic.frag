@@ -2,40 +2,37 @@
 
 in vec3 Position;
 in vec3 Normal;
+in vec2 TexCoord;
+
+uniform sampler2D Tex1;
+
+struct LightInfo {
+    vec4 Position;      // Light position in eye coords.
+    vec3 Intensity;     // A, D, S intensity
+};
+uniform LightInfo Light;
+
+struct MaterialInfo {
+    vec3 Ka;            // Ambient reflectivity
+    vec3 Kd;            // Diffuse reflectivity
+    vec3 Ks;            // Specular reflectivity
+    float Shininess;    // Specular shininess factor
+};
+uniform MaterialInfo Material;
 
 layout( location = 0 ) out vec4 FragColor;
 
-struct FogInfo {
-    float maxDist;
-    float minDist;
-    vec3 color;
-};
-uniform FogInfo Fog;
-
-uniform vec4 LightPosition;      // Light position in eye coords.
-uniform vec3 LightIntensity;     // Light intensity
-
-uniform vec3 Ka;            // Ambient reflectivity
-uniform vec3 Kd;            // Diffuse reflectivity
-uniform vec3 Ks;            // Specular reflectivity
-uniform float Shininess;    // Specular shininess factor
-
-vec3 ads() {
-    vec3 s = normalize(vec3(LightPosition) - Position);
-    vec3 v = normalize(vec3(-Position));
+void phongModel(vec3 pos, vec3 norm, out vec3 ambAndDiff, out vec3 spec) {
+    vec3 s = normalize(vec3(Light.Position) - pos);
+    vec3 v = normalize(vec3(-pos));
     vec3 h = normalize(v + s);
-    vec3 ambient = Ka * LightIntensity;
-    vec3 diffuse = LightIntensity * Kd * max(0.0, dot(s, Normal));
-    vec3 spec = LightIntensity * Ks * pow(max(0.0, dot(h, Normal)), Shininess);
-    return ambient + diffuse + spec;
+    spec = Light.Intensity * Material.Ks * pow(max(0.0, dot(h, norm)), Material.Shininess);
+    ambAndDiff = Light.Intensity * Material.Ka + Light.Intensity * Material.Kd * max(0.0, dot(s, norm));
 }
 
 void main() {
-//    float dist = abs(Position.z);
-    float dist = length( Position.xyz );
-    float fogFactor = (Fog.maxDist - dist) / (Fog.maxDist - Fog.minDist);
-    fogFactor = clamp(fogFactor, 0.0, 1.0);
-    vec3 shadeColor = ads();
-    vec3 color = mix(Fog.color, shadeColor, fogFactor);
-    FragColor = vec4(color, 1.0);
+    vec3 ambAndDiff, spec;
+    vec4 texColor = texture(Tex1, TexCoord);
+    phongModel(Position, Normal, ambAndDiff, spec);
+    FragColor = vec4(ambAndDiff, 1.0) * texColor + vec4(spec, 1.0);
 }
