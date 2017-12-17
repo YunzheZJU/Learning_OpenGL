@@ -8,9 +8,10 @@
 
 Shader shader = Shader();
 //VBOPlane *plane;
-VBOTeapot *teapot;
+//VBOTeapot *teapot;
 //VBOTorus *torus;
 //VBOCube *cube;
+VBOMesh *ogre;
 mat4 model;
 mat4 view;
 mat4 projection;
@@ -85,7 +86,7 @@ void Redraw() {
     updateMVPLeft();
     updateShaderMVP();
 //    cube->render();
-    teapot->render();
+    ogre->render();
 //    glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &diffuseIndex);
 //    glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &adsIndex);
 //    updateMVPRight();
@@ -497,9 +498,10 @@ void PrintStatus() {
 
 void initVBO() {
 //    plane = new VBOPlane(50.0f, 50.0f, 1, 1);
-    teapot = new VBOTeapot(14, glm::mat4(1.0f));
+//    teapot = new VBOTeapot(14, glm::mat4(1.0f));
 //    torus = new VBOTorus(0.7f * 2, 0.3f * 2, 50, 50);
 //    cube = new VBOCube();
+    ogre = new VBOMesh("media/bs_ears.obj", false, true, true);
 }
 
 void setShader() {
@@ -511,15 +513,13 @@ void setShader() {
 
     updateShaderMVP();
 
-    // Load brick texture file into channel 0
+    // Load diffuse texture
     glActiveTexture(GL_TEXTURE0);
-    TGAIO::loadTex("media/texture/brick1.tga");
+    TGAIO::loadTex("media/texture/ogre_diffuse.tga");
 
-    // Load moss texture file into channel 1
+    // Load normal map
     glActiveTexture(GL_TEXTURE1);
-    TGAIO::loadTex("media/texture/moss.tga");
-    shader.setUniform("BaseTex", 0);
-    shader.setUniform("AlphaTex", 1);
+    TGAIO::loadTex("media/texture/ogre_normalmap.tga");
 }
 
 void updateMVPLeft() {
@@ -531,7 +531,7 @@ void updateMVPLeft() {
                        vec3(0.0f, 1.0f, 0.0f));
     projection = glm::perspective(45.0f, 1.7778f, 0.1f, 30000.0f);
     shader.setUniform("Light.Position", view * vec4(0.0f, 5.0f, 10.0f, 1.0f));
-    shader.setUniform("Material.Kd", 0.9f, 0.5f, 0.3f);
+//    shader.setUniform("Material.Kd", 0.9f, 0.5f, 0.3f);
     shader.setUniform("Material.Ks", 0.95f, 0.95f, 0.95f);
     shader.setUniform("Material.Ka", 0.1f, 0.1f, 0.1f);
     shader.setUniform("Material.Shininess", 100.0f);
