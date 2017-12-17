@@ -505,6 +505,9 @@ void setShader() {
 //    shader.setUniform("Ks", 0.8f, 0.8f, 0.8f);
 //    shader.setUniform("Shininess", 100.0f);
     shader.setUniform("LightIntensity", vec3(0.9f, 0.9f, 0.9f));
+    shader.setUniform("Fog.maxDist", 30.0f );
+    shader.setUniform("Fog.minDist", 1.0f );
+    shader.setUniform("Fog.color", vec3(0.5f,0.5f,0.5f) );
 
     updateShaderMVP();
 }
