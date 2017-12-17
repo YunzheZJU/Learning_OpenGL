@@ -155,3 +155,48 @@ bool screenshot(int width, int height) {
 
     return true;
 }
+
+void loadCubeMap(const char *baseFileName) {
+    glActiveTexture(GL_TEXTURE0);
+
+    GLuint texID;
+    glGenTextures(1, &texID);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, texID);
+
+    const char *suffixes[] = {"posx", "negx", "posy", "negy", "posz", "negz"};
+    GLuint targets[] = {
+            GL_TEXTURE_CUBE_MAP_POSITIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+            GL_TEXTURE_CUBE_MAP_POSITIVE_Y, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+            GL_TEXTURE_CUBE_MAP_POSITIVE_Z, GL_TEXTURE_CUBE_MAP_NEGATIVE_Z
+    };
+
+    GLint w, h;
+
+#ifndef __APPLE__
+    // Allocate immutable storage for the cube map texture
+    glTexStorage2D(GL_TEXTURE_CUBE_MAP, 1, GL_RGBA8, 256, 256);
+#endif
+
+    // Load each cube-map face
+    for (int i = 0; i < 6; i++) {
+        string texName = string(baseFileName) + "_" + suffixes[i] + ".tga";
+        GLubyte *data = TGAIO::read(texName.c_str(), w, h);
+#ifdef __APPLE__
+        glTexImage2D(targets[i], 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data );
+#else
+        glTexSubImage2D(targets[i], 0, 0, 0, w, h,
+                        GL_RGBA, GL_UNSIGNED_BYTE, data);
+#endif
+        delete[] data;
+    }
+
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+#ifdef __APPLE__
+    prog.setUniform("CubeMapTex", 0);
+#endif
+}

@@ -7,6 +7,7 @@
 
 // include global.h
 #include "global.h"
+#include "tgaio.h"
 
 // Using namespace std for cout
 using namespace std;
@@ -22,5 +23,6 @@ void saveCamera(GLfloat* camera, GLfloat* target, GLfloat* polar);
 void loadCamera(GLfloat* camera, GLfloat* target, GLfloat* polar);
 void updateWindowcenter(int* window, int* windowcenter);
 bool screenshot(int width, int height);
+void loadCubeMap(const char *baseFileName);
 
 #endif //GPUBASEDRENDERING_A1_UTILITY_H

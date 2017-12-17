@@ -17,7 +17,7 @@
 #include "vbomesh.h"
 #include "vboplane.h"
 #include "vbocube.h"
-#include "tgaio.h"
+#include "skybox.h"
 
 // Using namespace std for cout
 using namespace std;
