@@ -1,10 +1,10 @@
-#version 410
+#version 430
 
 in vec3 Position;
 in vec3 Normal;
 in vec2 TexCoord;
 
-uniform sampler2D Tex1;
+uniform sampler2D RenderTex;
 
 struct LightInfo {
     vec4 Position;      // Light position in eye coords.
@@ -20,7 +20,7 @@ struct MaterialInfo {
 };
 uniform MaterialInfo Material;
 
-layout( location = 0 ) out vec4 FragColor;
+layout ( location = 0 ) out vec4 FragColor;
 
 void phongModel(vec3 pos, vec3 norm, out vec3 ambAndDiff, out vec3 spec) {
     vec3 s = normalize(vec3(Light.Position) - pos);
@@ -32,7 +32,7 @@ void phongModel(vec3 pos, vec3 norm, out vec3 ambAndDiff, out vec3 spec) {
 
 void main() {
     vec3 ambAndDiff, spec;
-    vec4 texColor = texture(Tex1, TexCoord);
+    vec4 texColor = texture(RenderTex, TexCoord);
     phongModel(Position, Normal, ambAndDiff, spec);
     FragColor = vec4(ambAndDiff, 1.0) * texColor + vec4(spec, 1.0);
 }

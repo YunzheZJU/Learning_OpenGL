@@ -1,5 +1,4 @@
 #include "vboplane.h"
-#include "glutils.h"
 
 VBOPlane::VBOPlane(float xsize, float zsize, int xdivs, int zdivs, float smax, float tmax)
 {

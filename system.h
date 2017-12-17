@@ -41,5 +41,6 @@ void setShader();
 void updateMVPLeft();
 void updateMVPRight();
 void updateShaderMVP();
+void setupFBO();
 
 #endif //GPUBASEDRENDERING_A1_SYSTEM_H

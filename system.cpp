@@ -5,12 +5,14 @@
 //
 
 #include "system.h"
+#include "glutils.h"
 
 Shader shader = Shader();
 //VBOPlane *plane;
-//VBOTeapot *teapot;
+VBOTeapot *teapot;
 //VBOTorus *torus;
 VBOCube *cube;
+GLuint fboHandle;
 mat4 model;
 mat4 view;
 mat4 projection;
@@ -50,6 +52,21 @@ void Reshape(int width, int height) {
 }
 
 void Redraw() {
+    shader.use();
+    glBindFramebuffer(GL_FRAMEBUFFER, fboHandle);
+    // Render to texture();
+    shader.setUniform("RenderTex", 1);
+    glViewport(0, 0, 512, 512);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    updateMVPRight();
+    teapot->render();
+
+    glFlush();
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    // Render scene
+//    Reshape(window[W], window[H]);
+    shader.setUniform("RenderTex", 0);
+    glViewport(static_cast<GLint>(window[W] / 2.0 - 640), static_cast<GLint>(window[H] / 2.0 - 360), 1280, 720);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity();                        // Reset The Current Modelview Matrix
 
@@ -58,21 +75,13 @@ void Redraw() {
               target[X], target[Y], target[Z],
               0, 1, 0);                            // Define the view model
 
-    shader.use();
     if (bMsaa) {
         glEnable(GL_MULTISAMPLE_ARB);
     } else {
         glDisable(GL_MULTISAMPLE_ARB);
     }
-
     // Set up the lights and enable them
     SetUpLights();
-
-    if (bShader) {
-        shader.use();
-    } else {
-        shader.disable();
-    }
 
     angle += 0.5f;
     // Draw something here
@@ -83,7 +92,6 @@ void Redraw() {
 //    glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &adsIndex);
 //    glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &diffuseIndex);
     updateMVPLeft();
-    updateShaderMVP();
     cube->render();
 //    glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &diffuseIndex);
 //    glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &adsIndex);
@@ -91,7 +99,8 @@ void Redraw() {
 //    updateShaderMVP();
 //    plane->render();
 //    DrawScene();
-    shader.disable();;
+
+    shader.disable();
 
     // Draw crosshair and locator in fps mode, or target when in observing mode(fpsmode == 0).
     if (fpsmode == 0) {
@@ -114,6 +123,7 @@ void Redraw() {
     PrintStatus();
 
     glutSwapBuffers();
+    GLUtils::checkForOpenGLError(__FILE__, __LINE__);
 }
 
 void ProcessMouseClick(int button, int state, int x, int y) {
@@ -496,7 +506,7 @@ void PrintStatus() {
 
 void initVBO() {
 //    plane = new VBOPlane(50.0f, 50.0f, 1, 1);
-//    teapot = new VBOTeapot(14, glm::mat4(1.0f));
+    teapot = new VBOTeapot(14, glm::mat4(1.0f));
 //    torus = new VBOTorus(0.7f * 2, 0.3f * 2, 50, 50);
     cube = new VBOCube();
 }
@@ -509,31 +519,6 @@ void setShader() {
     shader.setUniform("Light.Intensity", vec3(1.0f, 1.0f, 1.0f));
 
     updateShaderMVP();
-
-    // Load texture file
-    GLint w, h;
-    glActiveTexture(GL_TEXTURE0);
-    GLubyte *data = TGAIO::read("media/texture/brick1.tga", w, h);
-
-    GLuint texID;
-    glGenTextures(1, &texID);
-
-    glBindTexture(GL_TEXTURE_2D, texID);
-#ifdef __APPLE__
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-#else
-    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, w, h);
-#endif
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, data);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-
-    delete[] data;
-
-#ifdef __APPLE__
-    // Set the sampler uniform
-    prog.setUniform("Tex1", 0);
-#endif
 }
 
 void updateMVPLeft() {
@@ -544,24 +529,34 @@ void updateMVPLeft() {
     view = glm::lookAt(vec3(camera[X], camera[Y], camera[Z]), vec3(target[X], target[Y], target[Z]),
                        vec3(0.0f, 1.0f, 0.0f));
     projection = glm::perspective(45.0f, 1.7778f, 0.1f, 30000.0f);
-    shader.setUniform("Light.Position", view * vec4(0.0f, 5.0f, 10.0f, 1.0f));
-    shader.setUniform("Material.Kd", 0.9f, 0.5f, 0.3f);
-    shader.setUniform("Material.Ks", 0.95f, 0.95f, 0.95f);
+
+    shader.setUniform("Light.Position", vec4(0.0f, 0.0f, 10.0f, 1.0f));
+    shader.setUniform("Material.Kd", 0.9f, 0.9f, 0.9f);
+    shader.setUniform("Material.Ks", 0.0f, 0.0f, 0.0f);
     shader.setUniform("Material.Ka", 0.1f, 0.1f, 0.1f);
-    shader.setUniform("Material.Shininess", 100.0f);
+    shader.setUniform("Material.Shininess", 1.0f);
+
+    updateShaderMVP();
 }
 
 void updateMVPRight() {
     model = mat4(1.0f);
-    model = glm::translate(model, vec3(0.0f, -0.45f, 0.0f));
-    view = glm::lookAt(vec3(camera[X], camera[Y], camera[Z]), vec3(target[X], target[Y], target[Z]),
-                       vec3(0.0f, 1.0f, 0.0f));
-    projection = glm::perspective(45.0f, 1.7778f, 0.1f, 30000.0f);
-    shader.setUniform("Light.Position", view * vec4(0.0f, 0.0f, 10.0f, 1.0f));
-    shader.setUniform("Material.Kd", 0.7f, 0.7f, 0.7f);
-    shader.setUniform("Material.Ks", 0.9f, 0.9f, 0.9f);
+    model = glm::translate(model, vec3(0.0f, -1.5f, 0.0f));
+    model = glm::rotate(model, glm::radians(angle), vec3(0.0f, 1.0f, 0.0f));
+    model = glm::rotate(model, glm::radians(-90.0f), vec3(1.0f, 0.0f, 0.0f));
+//    view = glm::lookAt(vec3(camera[X], camera[Y], camera[Z]), vec3(target[X], target[Y], target[Z]),
+//                       vec3(0.0f, 1.0f, 0.0f));
+//    projection = glm::perspective(45.0f, 1.7778f, 0.1f, 30000.0f);
+    view = glm::lookAt(vec3(0.0f, 0.0f, 7.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
+    projection = glm::perspective(glm::radians(60.0f), 1.0f, 0.3f, 100.0f);
+
+    shader.setUniform("Light.Position", vec4(0.0f, 0.0f, 0.0f, 1.0f));
+    shader.setUniform("Material.Kd", 0.9f, 0.9f, 0.9f);
+    shader.setUniform("Material.Ks", 0.95f, 0.95f, 0.95f);
     shader.setUniform("Material.Ka", 0.1f, 0.1f, 0.1f);
-    shader.setUniform("Material.Shininess", 180.0f);
+    shader.setUniform("Material.Shininess", 100.0f);
+
+    updateShaderMVP();
 }
 
 void updateShaderMVP() {
@@ -569,4 +564,64 @@ void updateShaderMVP() {
     shader.setUniform("ModelViewMatrix", mv);
     shader.setUniform("NormalMatrix", mat3(vec3(mv[0]), vec3(mv[1]), vec3(mv[2])));
     shader.setUniform("MVP", projection * mv);
+}
+
+void setupFBO() {
+    // Generate and bind the framebuffer
+    glGenFramebuffers(1, &fboHandle);
+    glBindFramebuffer(GL_FRAMEBUFFER, fboHandle);
+
+    // Create the texture object
+    GLuint renderTex;
+    glGenTextures(1, &renderTex);
+    glActiveTexture(GL_TEXTURE0);  // Use texture unit 0
+    glBindTexture(GL_TEXTURE_2D, renderTex);
+#ifdef __APPLE__
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 512, 512, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+#else
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 512, 512);
+#endif
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // Bind the texture to the FBO
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderTex, 0);
+
+    // Create the depth buffer
+    GLuint depthBuf;
+    glGenRenderbuffers(1, &depthBuf);
+    glBindRenderbuffer(GL_RENDERBUFFER, depthBuf);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, 512, 512);
+
+    // Bind the depth buffer to the FBO
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                              GL_RENDERBUFFER, depthBuf);
+
+    // Set the targets for the fragment output variables
+    GLenum drawBuffers[] = {GL_COLOR_ATTACHMENT0};
+    glDrawBuffers(1, drawBuffers);
+
+    GLenum result = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if (result == GL_FRAMEBUFFER_COMPLETE) {
+        cout << "Framebuffer is complete" << endl;
+    } else {
+        cout << "Framebuffer error: " << result << endl;
+    }
+
+    // Unbind the framebuffer, and revert to default framebuffer
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // One pixel white texture
+    GLuint whiteTexHandle;
+    GLubyte whiteTex[] = {255, 255, 255, 255};
+    // 为什么不能绑定到0？ 看来这不是每个帧缓存之间隔离的，但是为什么在画茶壶的时候自动使用了1号纹理？
+    glActiveTexture(GL_TEXTURE1);
+    glGenTextures(1, &whiteTexHandle);
+    glBindTexture(GL_TEXTURE_2D, whiteTexHandle);
+#ifdef __APPLE__
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+#else
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 1, 1);
+#endif
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, whiteTex);
 }
