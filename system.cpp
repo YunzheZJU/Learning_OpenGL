@@ -510,30 +510,15 @@ void setShader() {
 
     updateShaderMVP();
 
-    // Load texture file
-    GLint w, h;
+    // Load brick texture file into channel 0
     glActiveTexture(GL_TEXTURE0);
-    GLubyte *data = TGAIO::read("media/texture/brick1.tga", w, h);
+    TGAIO::loadTex("media/texture/brick1.tga");
 
-    GLuint texID;
-    glGenTextures(1, &texID);
-
-    glBindTexture(GL_TEXTURE_2D, texID);
-#ifdef __APPLE__
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-#else
-    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, w, h);
-#endif
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, data);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-
-    delete[] data;
-
-#ifdef __APPLE__
-    // Set the sampler uniform
-    prog.setUniform("Tex1", 0);
-#endif
+    // Load moss texture file into channel 1
+    glActiveTexture(GL_TEXTURE1);
+    TGAIO::loadTex("media/texture/moss.tga");
+    shader.setUniform("BrickTex", 0);
+    shader.setUniform("MossTex", 1);
 }
 
 void updateMVPLeft() {
