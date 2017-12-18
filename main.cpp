@@ -29,17 +29,8 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    try {
-        shader.compileShader("basic.vert");
-        shader.compileShader("basic.frag");
-        shader.link();
-        shader.use();
-    } catch (GLSLProgramException &e) {
-        cerr << e.what() << endl;
-        exit(EXIT_FAILURE);
-    }
-
 //    SetUpLights();
+    initShader();
     initVBO();
     setupFBO();
     setupVAO();

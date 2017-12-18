@@ -22,10 +22,6 @@
 // Using namespace std for cout
 using namespace std;
 
-//extern GLuint vaoHandle;
-extern Shader shader;
-extern VBOTorus *torus;
-
 void Idle();
 void Redraw();
 void Reshape(int width, int height);
@@ -35,7 +31,6 @@ void ProcessFocus(int state);
 void ProcessNormalKey(unsigned char k, int x, int y);
 void ProcessSpecialKey(int k, int x, int y);
 void PrintStatus();
-void SetBufferedObjects();
 void initVBO();
 void setShader();
 void updateMVPZero();
@@ -45,5 +40,7 @@ void updateMVPThree();
 void updateShaderMVP();
 void setupFBO();
 void setupVAO();
+void initShader();
+void createGBufTex( GLenum texUnit, GLenum format, GLuint &texid );
 
 #endif //GPUBASEDRENDERING_A1_SYSTEM_H

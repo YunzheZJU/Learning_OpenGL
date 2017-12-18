@@ -13,18 +13,16 @@ VBOPlane *plane;
 VBOTeapot *teapot;
 VBOTorus *torus;
 //VBOCube *cube;
-GLuint renderFBO;
-GLuint intermediateFBO1;
-GLuint intermediateFBO2;
+GLuint deferredFBO;
 GLuint pass1Index;
 GLuint pass2Index;
-GLuint pass3Index;
-GLuint pass4Index;
-GLuint renderTex;
-GLuint intermediateTex1;
-GLuint intermediateTex2;
-GLuint linearSampler;
-GLuint nearestSampler;
+//GLuint pass3Index;
+//GLuint pass4Index;
+//GLuint renderTex;
+//GLuint intermediateTex1;
+//GLuint intermediateTex2;
+//GLuint linearSampler;
+//GLuint nearestSampler;
 GLuint fsQuad;
 mat4 model;
 mat4 view;
@@ -70,7 +68,7 @@ void Redraw() {
     shader.use();
     //////////////////Pass #1////////////////////
     // Render scene
-    glBindFramebuffer(GL_FRAMEBUFFER, renderFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, deferredFBO);
     glViewport(static_cast<GLint>(window[W] / 2.0 - 640), static_cast<GLint>(window[H] / 2.0 - 360), 1280, 720);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity();                        // Reset The Current Modelview Matrix
@@ -98,55 +96,15 @@ void Redraw() {
 
     glFlush();
     //////////////////Pass #2////////////////////
-    // Render the light part
-    glBindFramebuffer(GL_FRAMEBUFFER, intermediateFBO1);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, renderTex);
+    // Render from the G-Buffer
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+//    glActiveTexture(GL_TEXTURE2);
+//    glBindTexture(GL_TEXTURE_2D, intermediateTex2);
 
     glDisable(GL_DEPTH_TEST);
     glClear(GL_COLOR_BUFFER_BIT);
 
     glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &pass2Index);
-    model = mat4(1.0f);
-    view = mat4(1.0f);
-    projection = mat4(1.0f);
-    updateShaderMVP();
-
-    // Render the full-screen quad
-    glBindVertexArray(fsQuad);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-
-    glFlush();
-    //////////////////Pass #3////////////////////
-    // Render 1st pass of gaussian blur
-    glBindFramebuffer(GL_FRAMEBUFFER, intermediateFBO2);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, intermediateTex1);
-
-    glDisable(GL_DEPTH_TEST);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &pass3Index);
-    model = mat4(1.0f);
-    view = mat4(1.0f);
-    projection = mat4(1.0f);
-    updateShaderMVP();
-
-    // Render the full-screen quad
-    glBindVertexArray(fsQuad);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-
-    glFlush();
-    //////////////////Pass #4////////////////////
-    // Render 2nd pass of gaussian blur and blend the passes altogether
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, intermediateTex2);
-
-    glDisable(GL_DEPTH_TEST);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &pass4Index);
     model = mat4(1.0f);
     view = mat4(1.0f);
     projection = mat4(1.0f);
@@ -567,65 +525,65 @@ void setShader() {
     GLuint shaderProgram = shader.getProgram();
     pass1Index = glGetSubroutineIndex(shaderProgram, GL_FRAGMENT_SHADER, "pass1");
     pass2Index = glGetSubroutineIndex(shaderProgram, GL_FRAGMENT_SHADER, "pass2");
-    pass3Index = glGetSubroutineIndex(shaderProgram, GL_FRAGMENT_SHADER, "pass3");
-    pass4Index = glGetSubroutineIndex(shaderProgram, GL_FRAGMENT_SHADER, "pass4");
+//    pass3Index = glGetSubroutineIndex(shaderProgram, GL_FRAGMENT_SHADER, "pass3");
+//    pass4Index = glGetSubroutineIndex(shaderProgram, GL_FRAGMENT_SHADER, "pass4");
 //    shader.setUniform("Ka", 0.9f, 0.5f, 0.3f);
 //    shader.setUniform("Kd", 0.9f, 0.5f, 0.3f);
 //    shader.setUniform("Ks", 0.8f, 0.8f, 0.8f);
 //    shader.setUniform("Shininess", 100.0f);
-    shader.setUniform("Width", window[W]);
-    shader.setUniform("Height", window[H]);
-    shader.setUniform("LumThresh", 0.98f);
-    shader.setUniform("Garmma", 2.2f);
+//    shader.setUniform("Width", window[W]);
+//    shader.setUniform("Height", window[H]);
+//    shader.setUniform("LumThresh", 0.98f);
+//    shader.setUniform("Garmma", 2.2f);
     shader.setUniform("Light.Intensity", vec3(1.0f, 1.0f, 1.0f));
     float weights[10], sum, sigma2 = 8.0f;
 
-    // Compute and sum the weights
-    weights[0] = gauss(0, sigma2);
-    sum = weights[0];
-    for (int i = 1; i < 10; i++) {
-        weights[i] = gauss(float(i), sigma2);
-        sum += 2 * weights[i];
-    }
-
-    // Normalize the weights and set the uniform
-    for (int i = 0; i < 10; i++) {
-        stringstream uniName;
-        uniName << "Weight[" << i << "]";
-        float val = weights[i] / sum;
-        shader.setUniform(uniName.str().c_str(), val);
-    }
-
-    // Set up two sampler objects for linear and nearest filtering
-    GLuint samplers[2];
-    glGenSamplers(2, samplers);
-    linearSampler = samplers[0];
-    nearestSampler = samplers[1];
-
-    GLfloat border[] = {0.0f,0.0f,0.0f,0.0f};
-    // Set up the nearest sampler
-    glSamplerParameteri(nearestSampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glSamplerParameteri(nearestSampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glSamplerParameteri(nearestSampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glSamplerParameteri(nearestSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    glSamplerParameterfv(nearestSampler, GL_TEXTURE_BORDER_COLOR, border);
-
-    // Set up the linear sampler
-    glSamplerParameteri(linearSampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glSamplerParameteri(linearSampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glSamplerParameteri(linearSampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glSamplerParameteri(linearSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    glSamplerParameterfv(linearSampler, GL_TEXTURE_BORDER_COLOR, border);
-
-    // We want nearest sampling except for the last pass.
-    glBindSampler(0, nearestSampler);
-    glBindSampler(1, nearestSampler);
-    glBindSampler(2, nearestSampler);
+//    // Compute and sum the weights
+//    weights[0] = gauss(0, sigma2);
+//    sum = weights[0];
+//    for (int i = 1; i < 10; i++) {
+//        weights[i] = gauss(float(i), sigma2);
+//        sum += 2 * weights[i];
+//    }
+//
+//    // Normalize the weights and set the uniform
+//    for (int i = 0; i < 10; i++) {
+//        stringstream uniName;
+//        uniName << "Weight[" << i << "]";
+//        float val = weights[i] / sum;
+//        shader.setUniform(uniName.str().c_str(), val);
+//    }
+//
+//    // Set up two sampler objects for linear and nearest filtering
+//    GLuint samplers[2];
+//    glGenSamplers(2, samplers);
+//    linearSampler = samplers[0];
+//    nearestSampler = samplers[1];
+//
+//    GLfloat border[] = {0.0f,0.0f,0.0f,0.0f};
+//    // Set up the nearest sampler
+//    glSamplerParameteri(nearestSampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+//    glSamplerParameteri(nearestSampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+//    glSamplerParameteri(nearestSampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+//    glSamplerParameteri(nearestSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+//    glSamplerParameterfv(nearestSampler, GL_TEXTURE_BORDER_COLOR, border);
+//
+//    // Set up the linear sampler
+//    glSamplerParameteri(linearSampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+//    glSamplerParameteri(linearSampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+//    glSamplerParameteri(linearSampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+//    glSamplerParameteri(linearSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+//    glSamplerParameterfv(linearSampler, GL_TEXTURE_BORDER_COLOR, border);
+//
+//    // We want nearest sampling except for the last pass.
+//    glBindSampler(0, nearestSampler);
+//    glBindSampler(1, nearestSampler);
+//    glBindSampler(2, nearestSampler);
 
 //#ifdef __APPLE__
-    shader.setUniform("HdrTex", 0);
-    shader.setUniform("BlurTex1", 1);
-    shader.setUniform("BlurTex2", 2);
+    shader.setUniform("PositionTex", 0);
+    shader.setUniform("NormalTex", 1);
+    shader.setUniform("ColorTex", 2);
 //#endif
 
     updateShaderMVP();
@@ -688,104 +646,33 @@ void updateShaderMVP() {
 }
 
 void setupFBO() {
-    // Generate and bind the framebuffer
-    glGenFramebuffers(1, &renderFBO);
-    glBindFramebuffer(GL_FRAMEBUFFER, renderFBO);
+    GLuint depthBuf, posTex, normTex, colorTex;
 
-    // Create the texture object
-    glGenTextures(1, &renderTex);
-    glActiveTexture(GL_TEXTURE0);  // Use texture unit 0
-    glBindTexture(GL_TEXTURE_2D, renderTex);
-#ifdef __APPLE__
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 512, 512, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-#else
-    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 1280, 720);
-#endif
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+    // Create and bind the FBO
+    glGenFramebuffers(1, &deferredFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, deferredFBO);
 
-    // Bind the texture to the FBO
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderTex, 0);
-
-    // Create the depth buffer
-    GLuint depthBuf;
+    // The depth buffer
     glGenRenderbuffers(1, &depthBuf);
     glBindRenderbuffer(GL_RENDERBUFFER, depthBuf);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, 1280, 720);
 
-    // Bind the depth buffer to the FBO
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-                              GL_RENDERBUFFER, depthBuf);
+    // Create the textures for position, normal and color
+    createGBufTex(GL_TEXTURE0, GL_RGB32F, posTex);  // Position
+    createGBufTex(GL_TEXTURE1, GL_RGB32F, normTex); // Normal
+    createGBufTex(GL_TEXTURE2, GL_RGB8, colorTex);  // Color
 
-    // Set the targets for the fragment output variables
-    GLenum drawBuffers[] = {GL_COLOR_ATTACHMENT0};
-    glDrawBuffers(1, drawBuffers);
+    // Attach the textures to the framebuffer
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthBuf);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, posTex, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, normTex, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, colorTex, 0);
 
-    GLenum result = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-    if (result == GL_FRAMEBUFFER_COMPLETE) {
-        cout << "Framebuffer is complete" << endl;
-    } else {
-        cout << "Framebuffer error: " << result << endl;
-    }
+    // 将FBO的三个缓存与Fragment shader的三个输出建立映射！
+    GLenum drawBuffers[] = {GL_NONE, GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1,
+                            GL_COLOR_ATTACHMENT2};
+    glDrawBuffers(4, drawBuffers);
 
-    // Unbind the framebuffer, and revert to default framebuffer
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-//////////////////////////////////////////////
-    // Generate and bind the framebuffer
-    glGenFramebuffers(1, &intermediateFBO1);
-    glBindFramebuffer(GL_FRAMEBUFFER, intermediateFBO1);
-
-    // Create the texture object
-    glGenTextures(1, &intermediateTex1);
-    glActiveTexture(GL_TEXTURE1);  // Use texture unit 0
-    glBindTexture(GL_TEXTURE_2D, intermediateTex1);
-#ifdef __APPLE__
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-#else
-    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 1280, 720);
-#endif
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-
-    // Bind the texture to the FBO
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, intermediateTex1, 0);
-
-    // No depth buffer needed for this FBO
-
-    // Set the targets for the fragment output variables
-    glDrawBuffers(1, drawBuffers);
-
-    // Unbind the framebuffer, and revert to default framebuffer
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-//////////////////////////////////////////////
-    // Generate and bind the framebuffer
-    glGenFramebuffers(1, &intermediateFBO2);
-    glBindFramebuffer(GL_FRAMEBUFFER, intermediateFBO2);
-
-    // Create the texture object
-    glGenTextures(1, &intermediateTex2);
-    glActiveTexture(GL_TEXTURE2);  // Use texture unit 0
-    glBindTexture(GL_TEXTURE_2D, intermediateTex2);
-#ifdef __APPLE__
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-#else
-    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 1280, 720);
-#endif
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-
-    // Bind the texture to the FBO
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, intermediateTex2, 0);
-
-    // No depth buffer needed for this FBO
-
-    // Set the targets for the fragment output variables
-    glDrawBuffers(1, drawBuffers);
-
-    // Unbind the framebuffer, and revert to default framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
@@ -825,4 +712,30 @@ void setupVAO() {
     glEnableVertexAttribArray(2);  // Texture coordinates
 
     glBindVertexArray(0);
+}
+
+void initShader() {
+    try {
+        shader.compileShader("basic.vert");
+        shader.compileShader("basic.frag");
+        shader.link();
+        shader.use();
+    } catch (GLSLProgramException &e) {
+        cerr << e.what() << endl;
+        exit(EXIT_FAILURE);
+    }
+}
+
+void createGBufTex( GLenum texUnit, GLenum format, GLuint &texid ) {
+    glActiveTexture(texUnit);
+    glGenTextures(1, &texid);
+    glBindTexture(GL_TEXTURE_2D, texid);
+#ifdef __APPLE__
+    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+#else
+    glTexStorage2D(GL_TEXTURE_2D, 1, format, 1280, 720);
+#endif
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
 }

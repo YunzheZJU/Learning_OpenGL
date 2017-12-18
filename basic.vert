@@ -2,7 +2,7 @@
 
 layout (location = 0) in vec3 VertexPosition;
 layout (location = 1) in vec3 VertexNormal;
-layout (location = 2) in vec2 VertexCoord;
+layout (location = 2) in vec2 VertexTexCoord;
 
 out vec3 Position;
 out vec3 Normal;
@@ -13,7 +13,7 @@ uniform mat3 NormalMatrix;
 uniform mat4 MVP;
 
 void main() {
-    TexCoord = VertexCoord;
+    TexCoord = VertexTexCoord;
     Normal = normalize(NormalMatrix * VertexNormal);
     Position = vec3(ModelViewMatrix * vec4(VertexPosition, 1.0));
     gl_Position = MVP * vec4(VertexPosition, 1.0);
