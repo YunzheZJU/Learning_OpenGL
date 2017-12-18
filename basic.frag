@@ -8,6 +8,7 @@ layout(binding = 0) uniform sampler2D RenderTex;
 layout(binding = 1) uniform sampler2D BlurTex1;
 layout(binding = 2) uniform sampler2D BlurTex2;
 
+uniform float Garmma;
 uniform int Width;
 uniform int Height;
 uniform float LumThresh;
@@ -84,7 +85,7 @@ vec4 pass4() {
         sum += texture(BlurTex2, TexCoord + vec2(PixOffset[i], 0.0) * dx) * Weight[i];
         sum += texture(BlurTex2, TexCoord - vec2(PixOffset[i], 0.0) * dx) * Weight[i];
     }
-    return val + sum;
+    return pow(val + sum, vec4(1 / Garmma));
 }
 
 void main() {

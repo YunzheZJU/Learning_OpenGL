@@ -576,6 +576,7 @@ void setShader() {
     shader.setUniform("Width", window[W]);
     shader.setUniform("Height", window[H]);
     shader.setUniform("LumThresh", 0.98f);
+    shader.setUniform("Garmma", 2.2f);
     shader.setUniform("Light.Intensity", vec3(1.0f, 1.0f, 1.0f));
     float weights[10], sum, sigma2 = 8.0f;
 
