@@ -4,12 +4,15 @@ in vec3 Position;
 in vec3 Normal;
 in vec2 TexCoord;
 
-layout(binding = 0) uniform sampler2D Texture0;
+layout(binding = 0) uniform sampler2D RenderTex;
+layout(binding = 1) uniform sampler2D BlurTex1;
+layout(binding = 2) uniform sampler2D BlurTex2;
 
 uniform int Width;
 uniform int Height;
-uniform float PixOffset[5] = float[](0.0, 1.0, 2.0, 3.0, 4.0);
-uniform float Weight[5];
+uniform float LumThresh;
+uniform float PixOffset[10] = float[](0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0);
+uniform float Weight[10];
 
 subroutine vec4 RenderPassType();
 subroutine uniform RenderPassType RenderPass;
@@ -30,6 +33,10 @@ uniform MaterialInfo Material;
 
 layout(location = 0) out vec4 FragColor;
 
+float luma(vec3 color) {
+    return 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
+}
+
 vec3 phongModel(vec3 pos, vec3 norm) {
     vec3 s = normalize(vec3(Light.Position) - pos);
     vec3 v = normalize(vec3(-pos));
@@ -47,25 +54,37 @@ vec4 pass1() {
 // Pass #2
 subroutine (RenderPassType)
 vec4 pass2() {
-    float dy = 1.0 / float(Height);
-    vec4 sum = texture(Texture0, TexCoord) * Weight[0];
-    for (int i = 1; i < 5; i++) {
-        sum += texture(Texture0, TexCoord + vec2(0.0, PixOffset[i]) * dy) * Weight[i];
-        sum += texture(Texture0, TexCoord - vec2(0.0, PixOffset[i]) * dy) * Weight[i];
-    }
-    return sum;
+    vec4 val = texture(RenderTex, TexCoord);
+//    return val * clamp(luma(val.rgb) - LumThresh, 0.0, 1.0) * (1.0 / (1.0 - LumThresh));
+    if( luma(val.rgb) > LumThresh )
+        return val;
+    else
+        return vec4(0.0);
 }
 
 // Pass #3
 subroutine(RenderPassType)
 vec4 pass3() {
-    float dx = 1.0 / float(Width);
-    vec4 sum = texture(Texture0, TexCoord) * Weight[0];
-    for (int i = 1; i < 5; i++) {
-        sum += texture(Texture0, TexCoord + vec2(PixOffset[i], 0.0) * dx) * Weight[i];
-        sum += texture(Texture0, TexCoord - vec2(PixOffset[i], 0.0) * dx) * Weight[i];
+    float dy = 1.0 / float(Height);
+    vec4 sum = texture(BlurTex1, TexCoord) * Weight[0];
+    for (int i = 1; i < 10; i++) {
+        sum += texture(BlurTex1, TexCoord + vec2(0.0, PixOffset[i]) * dy) * Weight[i];
+        sum += texture(BlurTex1, TexCoord - vec2(0.0, PixOffset[i]) * dy) * Weight[i];
     }
     return sum;
+}
+
+// Pass #4
+subroutine(RenderPassType)
+vec4 pass4() {
+    float dx = 1.0 / float(Width);
+    vec4 val = texture(RenderTex, TexCoord);
+    vec4 sum = texture(BlurTex2, TexCoord) * Weight[0];
+    for (int i = 1; i < 10; i++) {
+        sum += texture(BlurTex2, TexCoord + vec2(PixOffset[i], 0.0) * dx) * Weight[i];
+        sum += texture(BlurTex2, TexCoord - vec2(PixOffset[i], 0.0) * dx) * Weight[i];
+    }
+    return val + sum;
 }
 
 void main() {
