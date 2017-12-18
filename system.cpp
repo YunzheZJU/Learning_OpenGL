@@ -6,16 +6,20 @@
 
 #include "system.h"
 #include "glutils.h"
+#include <sstream>
 
 Shader shader = Shader();
 VBOPlane *plane;
 VBOTeapot *teapot;
 VBOTorus *torus;
 //VBOCube *cube;
-GLuint fboHandle;
+GLuint renderFBO;
+GLuint intermediateFBO;
 GLuint pass1Index;
 GLuint pass2Index;
+GLuint pass3Index;
 GLuint renderTex;
+GLuint intermediateTex;
 GLuint fsQuad;
 mat4 model;
 mat4 view;
@@ -59,7 +63,7 @@ void Reshape(int width, int height) {
 
 void Redraw() {
     shader.use();
-    glBindFramebuffer(GL_FRAMEBUFFER, fboHandle);
+    glBindFramebuffer(GL_FRAMEBUFFER, renderFBO);
     // Render scene
     glViewport(static_cast<GLint>(window[W] / 2.0 - 640), static_cast<GLint>(window[H] / 2.0 - 360), 1280, 720);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -88,7 +92,7 @@ void Redraw() {
 
     glFlush();
     //////////////////////////////////////
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, intermediateFBO);
     // Render filter Image
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, renderTex);
@@ -96,7 +100,7 @@ void Redraw() {
     glDisable(GL_DEPTH_TEST);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    glUniformSubroutinesuiv( GL_FRAGMENT_SHADER, 1, &pass2Index);
+    glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &pass2Index);
     model = mat4(1.0f);
     view = mat4(1.0f);
     projection = mat4(1.0f);
@@ -105,7 +109,26 @@ void Redraw() {
     // Render the full-screen quad
     glBindVertexArray(fsQuad);
     glDrawArrays(GL_TRIANGLES, 0, 6);
-    glBindVertexArray(0);
+
+    glFlush();
+    //////////////////////////////////////
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    // Render filter Image
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, intermediateTex);
+
+    glDisable(GL_DEPTH_TEST);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &pass3Index);
+    model = mat4(1.0f);
+    view = mat4(1.0f);
+    projection = mat4(1.0f);
+    updateShaderMVP();
+
+    // Render the full-screen quad
+    glBindVertexArray(fsQuad);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
 
     shader.disable();
     // Draw crosshair and locator in fps mode, or target when in observing mode(fpsmode == 0).
@@ -518,15 +541,31 @@ void setShader() {
     GLuint shaderProgram = shader.getProgram();
     pass1Index = glGetSubroutineIndex(shaderProgram, GL_FRAGMENT_SHADER, "pass1");
     pass2Index = glGetSubroutineIndex(shaderProgram, GL_FRAGMENT_SHADER, "pass2");
-
+    pass3Index = glGetSubroutineIndex(shaderProgram, GL_FRAGMENT_SHADER, "pass3");
 //    shader.setUniform("Ka", 0.9f, 0.5f, 0.3f);
 //    shader.setUniform("Kd", 0.9f, 0.5f, 0.3f);
 //    shader.setUniform("Ks", 0.8f, 0.8f, 0.8f);
 //    shader.setUniform("Shininess", 100.0f);
-    shader.setUniform("EdgeThreshold", 0.05f);
     shader.setUniform("Width", window[W]);
     shader.setUniform("Height", window[H]);
     shader.setUniform("Light.Intensity", vec3(1.0f, 1.0f, 1.0f));
+    float weights[5], sum, sigma2 = 8.0f;
+
+    // Compute and sum the weights
+    weights[0] = gauss(0, sigma2);
+    sum = weights[0];
+    for (int i = 1; i < 5; i++) {
+        weights[i] = gauss(float(i), sigma2);
+        sum += 2 * weights[i];
+    }
+
+    // Normalize the weights and set the uniform
+    for (int i = 0; i < 5; i++) {
+        stringstream uniName;
+        uniName << "Weight[" << i << "]";
+        float val = weights[i] / sum;
+        shader.setUniform(uniName.str().c_str(), val);
+    }
 
     updateShaderMVP();
 }
@@ -589,8 +628,8 @@ void updateShaderMVP() {
 
 void setupFBO() {
     // Generate and bind the framebuffer
-    glGenFramebuffers(1, &fboHandle);
-    glBindFramebuffer(GL_FRAMEBUFFER, fboHandle);
+    glGenFramebuffers(1, &renderFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, renderFBO);
 
     // Create the texture object
     glGenTextures(1, &renderTex);
@@ -627,6 +666,34 @@ void setupFBO() {
     } else {
         cout << "Framebuffer error: " << result << endl;
     }
+
+    // Unbind the framebuffer, and revert to default framebuffer
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // Generate and bind the framebuffer
+    glGenFramebuffers(1, &intermediateFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, intermediateFBO);
+
+    // Create the texture object
+    glGenTextures(1, &intermediateTex);
+    glActiveTexture(GL_TEXTURE0);  // Use texture unit 0
+    glBindTexture(GL_TEXTURE_2D, intermediateTex);
+#ifdef __APPLE__
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+#else
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 1280, 720);
+#endif
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+
+    // Bind the texture to the FBO
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, intermediateTex, 0);
+
+    // No depth buffer needed for this FBO
+
+    // Set the targets for the fragment output variables
+    glDrawBuffers(1, drawBuffers);
 
     // Unbind the framebuffer, and revert to default framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);

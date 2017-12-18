@@ -155,3 +155,9 @@ bool screenshot(int width, int height) {
 
     return true;
 }
+
+float gauss(float x, float sigma2) {
+    double coeff = 1.0 / (glm::two_pi<double>() * sigma2);
+    double expon = -(x * x) / (2.0 * sigma2);
+    return (float) (coeff * exp(expon));
+}

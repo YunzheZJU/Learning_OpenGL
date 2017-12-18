@@ -4,11 +4,12 @@ in vec3 Position;
 in vec3 Normal;
 in vec2 TexCoord;
 
-layout(binding = 0) uniform sampler2D RenderTex;
+layout(binding = 0) uniform sampler2D Texture0;
 
-uniform float EdgeThreshold;
 uniform int Width;
 uniform int Height;
+uniform float PixOffset[5] = float[](0.0, 1.0, 2.0, 3.0, 4.0);
+uniform float Weight[5];
 
 subroutine vec4 RenderPassType();
 subroutine uniform RenderPassType RenderPass;
@@ -37,10 +38,6 @@ vec3 phongModel(vec3 pos, vec3 norm) {
         Light.Intensity * Material.Ks * pow(max(0.0, dot(h, norm)), Material.Shininess);
 }
 
-float luma(vec3 color) {
-    return 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
-}
-
 // Pass #1
 subroutine (RenderPassType)
 vec4 pass1() {
@@ -50,25 +47,25 @@ vec4 pass1() {
 // Pass #2
 subroutine (RenderPassType)
 vec4 pass2() {
-    float dx = 1.0 / float(Width);
     float dy = 1.0 / float(Height);
-    float s00 = luma(texture(RenderTex, TexCoord + vec2(-dx, dy)).rgb);
-    float s10 = luma(texture(RenderTex, TexCoord + vec2(-dx, 0.0)).rgb);
-    float s20 = luma(texture(RenderTex, TexCoord + vec2(-dx, -dy)).rgb);
-    float s01 = luma(texture(RenderTex, TexCoord + vec2(0.0, dy)).rgb);
-    float s21 = luma(texture(RenderTex, TexCoord + vec2(0.0, -dy)).rgb);
-    float s02 = luma(texture(RenderTex, TexCoord + vec2(dx, dy)).rgb);
-    float s12 = luma(texture(RenderTex, TexCoord + vec2(dx, 0.0)).rgb);
-    float s22 = luma(texture(RenderTex, TexCoord + vec2(dx, dy)).rgb);
-    float sx = s00 + 2 * s10 + s20 - (s02 + 2 * s12 + s22);
-    float sy = s00 + 2 * s01 + s02 - (s20 + 2 * s21 + s22);
-    float dist = sx * sx + sy * sy;
-    if (dist > EdgeThreshold) {
-        return vec4(1.0);
+    vec4 sum = texture(Texture0, TexCoord) * Weight[0];
+    for (int i = 1; i < 5; i++) {
+        sum += texture(Texture0, TexCoord + vec2(0.0, PixOffset[i]) * dy) * Weight[i];
+        sum += texture(Texture0, TexCoord - vec2(0.0, PixOffset[i]) * dy) * Weight[i];
     }
-    else {
-        return vec4(0.0, 0.0, 0.0, 1.0);
+    return sum;
+}
+
+// Pass #3
+subroutine(RenderPassType)
+vec4 pass3() {
+    float dx = 1.0 / float(Width);
+    vec4 sum = texture(Texture0, TexCoord) * Weight[0];
+    for (int i = 1; i < 5; i++) {
+        sum += texture(Texture0, TexCoord + vec2(PixOffset[i], 0.0) * dx) * Weight[i];
+        sum += texture(Texture0, TexCoord - vec2(PixOffset[i], 0.0) * dx) * Weight[i];
     }
+    return sum;
 }
 
 void main() {
