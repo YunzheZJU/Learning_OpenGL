@@ -18,6 +18,7 @@
 #include "vboplane.h"
 #include "vbocube.h"
 #include "tgaio.h"
+#include "bmpreader.h"
 
 // Using namespace std for cout
 using namespace std;
@@ -41,6 +42,5 @@ void updateShaderMVP();
 void setupFBO();
 void setupVAO();
 void initShader();
-void createGBufTex( GLenum texUnit, GLenum format, GLuint &texid );
 
 #endif //GPUBASEDRENDERING_A1_SYSTEM_H

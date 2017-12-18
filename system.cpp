@@ -9,13 +9,13 @@
 #include <sstream>
 
 Shader shader = Shader();
-VBOPlane *plane;
-VBOTeapot *teapot;
-VBOTorus *torus;
+//VBOPlane *plane;
+//VBOTeapot *teapot;
+//VBOTorus *torus;
 //VBOCube *cube;
-GLuint deferredFBO;
-GLuint pass1Index;
-GLuint pass2Index;
+//GLuint deferredFBO;
+//GLuint pass1Index;
+//GLuint pass2Index;
 //GLuint pass3Index;
 //GLuint pass4Index;
 //GLuint renderTex;
@@ -23,7 +23,10 @@ GLuint pass2Index;
 //GLuint intermediateTex2;
 //GLuint linearSampler;
 //GLuint nearestSampler;
-GLuint fsQuad;
+GLuint sprites;
+int numSprites;
+float *locations;
+//GLuint fsQuad;
 mat4 model;
 mat4 view;
 mat4 projection;
@@ -66,10 +69,7 @@ void Reshape(int width, int height) {
 
 void Redraw() {
     shader.use();
-    //////////////////Pass #1////////////////////
     // Render scene
-    glBindFramebuffer(GL_FRAMEBUFFER, deferredFBO);
-    glViewport(static_cast<GLint>(window[W] / 2.0 - 640), static_cast<GLint>(window[H] / 2.0 - 360), 1280, 720);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity();                        // Reset The Current Modelview Matrix
     // 必须定义，以在固定管线中绘制物体
@@ -82,38 +82,13 @@ void Redraw() {
         glDisable(GL_MULTISAMPLE_ARB);
     }
     angle += 0.5f;
-    glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &pass1Index);
     glEnable(GL_DEPTH_TEST);
     // Draw something here
     updateMVPZero();
     updateMVPOne();
-    teapot->render();
-    updateMVPTwo();
-    plane->render();
-    updateMVPThree();
-    torus->render();
+    glBindVertexArray(sprites);
+    glDrawArrays(GL_POINTS, 0, numSprites);
 //    DrawScene();
-
-    glFlush();
-    //////////////////Pass #2////////////////////
-    // Render from the G-Buffer
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-//    glActiveTexture(GL_TEXTURE2);
-//    glBindTexture(GL_TEXTURE_2D, intermediateTex2);
-
-    glDisable(GL_DEPTH_TEST);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &pass2Index);
-    model = mat4(1.0f);
-    view = mat4(1.0f);
-    projection = mat4(1.0f);
-    updateShaderMVP();
-
-    // Render the full-screen quad
-    glBindVertexArray(fsQuad);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-
     shader.disable();
     // Draw crosshair and locator in fps mode, or target when in observing mode(fpsmode == 0).
     if (fpsmode == 0) {
@@ -515,76 +490,20 @@ void PrintStatus() {
 }
 
 void initVBO() {
-    plane = new VBOPlane(50.0f, 50.0f, 1, 1);
-    teapot = new VBOTeapot(14, glm::mat4(1.0f));
-    torus = new VBOTorus(0.7f * 2, 0.3f * 2, 50, 50);
+//    plane = new VBOPlane(50.0f, 50.0f, 1, 1);
+//    teapot = new VBOTeapot(14, glm::mat4(1.0f));
+//    torus = new VBOTorus(0.7f * 2, 0.3f * 2, 50, 50);
 //    cube = new VBOCube();
 }
 
 void setShader() {
-    GLuint shaderProgram = shader.getProgram();
-    pass1Index = glGetSubroutineIndex(shaderProgram, GL_FRAGMENT_SHADER, "pass1");
-    pass2Index = glGetSubroutineIndex(shaderProgram, GL_FRAGMENT_SHADER, "pass2");
-//    pass3Index = glGetSubroutineIndex(shaderProgram, GL_FRAGMENT_SHADER, "pass3");
-//    pass4Index = glGetSubroutineIndex(shaderProgram, GL_FRAGMENT_SHADER, "pass4");
-//    shader.setUniform("Ka", 0.9f, 0.5f, 0.3f);
-//    shader.setUniform("Kd", 0.9f, 0.5f, 0.3f);
-//    shader.setUniform("Ks", 0.8f, 0.8f, 0.8f);
-//    shader.setUniform("Shininess", 100.0f);
-//    shader.setUniform("Width", window[W]);
-//    shader.setUniform("Height", window[H]);
-//    shader.setUniform("LumThresh", 0.98f);
-//    shader.setUniform("Garmma", 2.2f);
-    shader.setUniform("Light.Intensity", vec3(1.0f, 1.0f, 1.0f));
-    float weights[10], sum, sigma2 = 8.0f;
+    // Load texture file
+    GLuint w, h;
+    const char *texName = "media/texture/flower.bmp";
+    BMPReader::loadTex(texName, w, h);
 
-//    // Compute and sum the weights
-//    weights[0] = gauss(0, sigma2);
-//    sum = weights[0];
-//    for (int i = 1; i < 10; i++) {
-//        weights[i] = gauss(float(i), sigma2);
-//        sum += 2 * weights[i];
-//    }
-//
-//    // Normalize the weights and set the uniform
-//    for (int i = 0; i < 10; i++) {
-//        stringstream uniName;
-//        uniName << "Weight[" << i << "]";
-//        float val = weights[i] / sum;
-//        shader.setUniform(uniName.str().c_str(), val);
-//    }
-//
-//    // Set up two sampler objects for linear and nearest filtering
-//    GLuint samplers[2];
-//    glGenSamplers(2, samplers);
-//    linearSampler = samplers[0];
-//    nearestSampler = samplers[1];
-//
-//    GLfloat border[] = {0.0f,0.0f,0.0f,0.0f};
-//    // Set up the nearest sampler
-//    glSamplerParameteri(nearestSampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-//    glSamplerParameteri(nearestSampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-//    glSamplerParameteri(nearestSampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-//    glSamplerParameteri(nearestSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-//    glSamplerParameterfv(nearestSampler, GL_TEXTURE_BORDER_COLOR, border);
-//
-//    // Set up the linear sampler
-//    glSamplerParameteri(linearSampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-//    glSamplerParameteri(linearSampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-//    glSamplerParameteri(linearSampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-//    glSamplerParameteri(linearSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-//    glSamplerParameterfv(linearSampler, GL_TEXTURE_BORDER_COLOR, border);
-//
-//    // We want nearest sampling except for the last pass.
-//    glBindSampler(0, nearestSampler);
-//    glBindSampler(1, nearestSampler);
-//    glBindSampler(2, nearestSampler);
-
-//#ifdef __APPLE__
-    shader.setUniform("PositionTex", 0);
-    shader.setUniform("NormalTex", 1);
-    shader.setUniform("ColorTex", 2);
-//#endif
+    shader.setUniform("SpriteTex", 0);
+    shader.setUniform("Size2", 0.5f);
 
     updateShaderMVP();
 }
@@ -593,19 +512,10 @@ void updateMVPZero() {
     view = glm::lookAt(vec3(camera[X], camera[Y], camera[Z]), vec3(target[X], target[Y], target[Z]),
                        vec3(0.0f, 1.0f, 0.0f));
     projection = glm::perspective(45.0f, 1.7778f, 0.1f, 30000.0f);
-    shader.setUniform("Light.Position", view * vec4(0.0f, 0.0f, 10.0f, 1.0f));
 }
 
 void updateMVPOne() {
     model = mat4(1.0f);
-    model = glm::translate(model, vec3(-2.0f, -1.5f, 0.0f));
-    model = glm::rotate(model, glm::radians(angle), vec3(0.0f, 1.0f, 0.0f));
-    model = glm::rotate(model, glm::radians(-90.0f), vec3(1.0f, 0.0f, 0.0f));
-
-    shader.setUniform("Material.Kd", 0.9f, 0.9f, 0.9f);
-    shader.setUniform("Material.Ks", 0.95f, 0.95f, 0.95f);
-    shader.setUniform("Material.Ka", 0.1f, 0.1f, 0.1f);
-    shader.setUniform("Material.Shininess", 100.0f);
 
     updateShaderMVP();
 }
@@ -641,75 +551,43 @@ void updateMVPThree() {
 void updateShaderMVP() {
     mat4 mv = view * model;
     shader.setUniform("ModelViewMatrix", mv);
-    shader.setUniform("NormalMatrix", mat3(vec3(mv[0]), vec3(mv[1]), vec3(mv[2])));
-    shader.setUniform("MVP", projection * mv);
+    shader.setUniform("ProjectionMatrix", projection);
+//    shader.setUniform("NormalMatrix", mat3(vec3(mv[0]), vec3(mv[1]), vec3(mv[2])));
+//    shader.setUniform("MVP", projection * mv);
 }
 
 void setupFBO() {
-    GLuint depthBuf, posTex, normTex, colorTex;
-
-    // Create and bind the FBO
-    glGenFramebuffers(1, &deferredFBO);
-    glBindFramebuffer(GL_FRAMEBUFFER, deferredFBO);
-
-    // The depth buffer
-    glGenRenderbuffers(1, &depthBuf);
-    glBindRenderbuffer(GL_RENDERBUFFER, depthBuf);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, 1280, 720);
-
-    // Create the textures for position, normal and color
-    createGBufTex(GL_TEXTURE0, GL_RGB32F, posTex);  // Position
-    createGBufTex(GL_TEXTURE1, GL_RGB32F, normTex); // Normal
-    createGBufTex(GL_TEXTURE2, GL_RGB8, colorTex);  // Color
-
-    // Attach the textures to the framebuffer
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthBuf);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, posTex, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, normTex, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, colorTex, 0);
-
-    // 将FBO的三个缓存与Fragment shader的三个输出建立映射！
-    GLenum drawBuffers[] = {GL_NONE, GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1,
-                            GL_COLOR_ATTACHMENT2};
-    glDrawBuffers(4, drawBuffers);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void setupVAO() {
-    // Array for full-screen quad
-    GLfloat verts[] = {
-            -1.0f, -1.0f, 0.0f, 1.0f, -1.0f, 0.0f, 1.0f, 1.0f, 0.0f,
-            -1.0f, -1.0f, 0.0f, 1.0f, 1.0f, 0.0f, -1.0f, 1.0f, 0.0f
-    };
-    GLfloat tc[] = {
-            0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f,
-            0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f
-    };
+    numSprites = 50;
+    locations = new float[numSprites * 3];
+    srand((unsigned int) time(0));
+    for (int i = 0; i < numSprites; i++) {
+        vec3 p(((float) rand() / RAND_MAX * 2.0f) - 1.0f,
+               ((float) rand() / RAND_MAX * 2.0f) - 1.0f,
+               ((float) rand() / RAND_MAX * 2.0f) - 1.0f);
+        locations[i * 3] = p.x * 10;
+        locations[i * 3 + 1] = p.y * 10;
+        locations[i * 3 + 2] = p.z * 10;
+    }
 
     // Set up the buffers
+    GLuint handle;
+    glGenBuffers(1, &handle);
 
-    unsigned int handle[2];
-    glGenBuffers(2, handle);
+    glBindBuffer(GL_ARRAY_BUFFER, handle);
+    glBufferData(GL_ARRAY_BUFFER, numSprites * 3 * sizeof(float), locations, GL_STATIC_DRAW);
 
-    glBindBuffer(GL_ARRAY_BUFFER, handle[0]);
-    glBufferData(GL_ARRAY_BUFFER, 6 * 3 * sizeof(float), verts, GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ARRAY_BUFFER, handle[1]);
-    glBufferData(GL_ARRAY_BUFFER, 6 * 2 * sizeof(float), tc, GL_STATIC_DRAW);
+    delete[] locations;
 
     // Set up the vertex array object
+    glGenVertexArrays(1, &sprites);
+    glBindVertexArray(sprites);
 
-    glGenVertexArrays(1, &fsQuad);
-    glBindVertexArray(fsQuad);
-
-    glBindBuffer(GL_ARRAY_BUFFER, handle[0]);
-    glVertexAttribPointer((GLuint) 0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, handle);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, ((GLubyte *) NULL + (0)));
     glEnableVertexAttribArray(0);  // Vertex position
-
-    glBindBuffer(GL_ARRAY_BUFFER, handle[1]);
-    glVertexAttribPointer((GLuint) 2, 2, GL_FLOAT, GL_FALSE, 0, 0);
-    glEnableVertexAttribArray(2);  // Texture coordinates
 
     glBindVertexArray(0);
 }
@@ -717,6 +595,7 @@ void setupVAO() {
 void initShader() {
     try {
         shader.compileShader("basic.vert");
+        shader.compileShader("basic.geom");
         shader.compileShader("basic.frag");
         shader.link();
         shader.use();
@@ -724,18 +603,4 @@ void initShader() {
         cerr << e.what() << endl;
         exit(EXIT_FAILURE);
     }
-}
-
-void createGBufTex( GLenum texUnit, GLenum format, GLuint &texid ) {
-    glActiveTexture(texUnit);
-    glGenTextures(1, &texid);
-    glBindTexture(GL_TEXTURE_2D, texid);
-#ifdef __APPLE__
-    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-#else
-    glTexStorage2D(GL_TEXTURE_2D, 1, format, 1280, 720);
-#endif
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
 }
