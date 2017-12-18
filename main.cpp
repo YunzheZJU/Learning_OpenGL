@@ -39,8 +39,10 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
+//    SetUpLights();
     initVBO();
     setupFBO();
+    setupVAO();
     setShader();
 
     glutMainLoop();

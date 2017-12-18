@@ -8,11 +8,15 @@
 #include "glutils.h"
 
 Shader shader = Shader();
-//VBOPlane *plane;
+VBOPlane *plane;
 VBOTeapot *teapot;
-//VBOTorus *torus;
-VBOCube *cube;
+VBOTorus *torus;
+//VBOCube *cube;
 GLuint fboHandle;
+GLuint pass1Index;
+GLuint pass2Index;
+GLuint renderTex;
+GLuint fsQuad;
 mat4 model;
 mat4 view;
 mat4 projection;
@@ -43,6 +47,8 @@ void Reshape(int width, int height) {
     glViewport(static_cast<GLint>(width / 2.0 - 640), static_cast<GLint>(height / 2.0 - 360), 1280, 720);
     window[W] = width;
     window[H] = height;
+    shader.setUniform("Width", window[W]);
+    shader.setUniform("Height", window[H]);
     updateWindowcenter(window, windowcenter);
 
     glMatrixMode(GL_PROJECTION);            // Select The Projection Matrix
@@ -54,54 +60,54 @@ void Reshape(int width, int height) {
 void Redraw() {
     shader.use();
     glBindFramebuffer(GL_FRAMEBUFFER, fboHandle);
-    // Render to texture();
-    shader.setUniform("RenderTex", 1);
-    glViewport(0, 0, 512, 512);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    updateMVPRight();
-    teapot->render();
-
-    glFlush();
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
     // Render scene
-//    Reshape(window[W], window[H]);
-    shader.setUniform("RenderTex", 0);
     glViewport(static_cast<GLint>(window[W] / 2.0 - 640), static_cast<GLint>(window[H] / 2.0 - 360), 1280, 720);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity();                        // Reset The Current Modelview Matrix
-
     // 必须定义，以在固定管线中绘制物体
     gluLookAt(camera[X], camera[Y], camera[Z],
               target[X], target[Y], target[Z],
-              0, 1, 0);                            // Define the view model
-
+              0, 1, 0);                            // Define the view matrix
     if (bMsaa) {
         glEnable(GL_MULTISAMPLE_ARB);
     } else {
         glDisable(GL_MULTISAMPLE_ARB);
     }
-    // Set up the lights and enable them
-    SetUpLights();
-
     angle += 0.5f;
-    // Draw something here
+    glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &pass1Index);
     glEnable(GL_DEPTH_TEST);
-//    GLuint shaderProgram = shader.getProgram();
-//    GLuint adsIndex = glGetSubroutineIndex(shaderProgram, GL_VERTEX_SHADER, "phongModel");
-//    GLuint diffuseIndex = glGetSubroutineIndex(shaderProgram, GL_VERTEX_SHADER, "diffuseOnly");
-//    glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &adsIndex);
-//    glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &diffuseIndex);
-    updateMVPLeft();
-    cube->render();
-//    glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &diffuseIndex);
-//    glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &adsIndex);
-//    updateMVPRight();
-//    updateShaderMVP();
-//    plane->render();
+    // Draw something here
+    updateMVPZero();
+    updateMVPOne();
+    teapot->render();
+    updateMVPTwo();
+    plane->render();
+    updateMVPThree();
+    torus->render();
 //    DrawScene();
 
-    shader.disable();
+    glFlush();
+    //////////////////////////////////////
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    // Render filter Image
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, renderTex);
 
+    glDisable(GL_DEPTH_TEST);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glUniformSubroutinesuiv( GL_FRAGMENT_SHADER, 1, &pass2Index);
+    model = mat4(1.0f);
+    view = mat4(1.0f);
+    projection = mat4(1.0f);
+    updateShaderMVP();
+
+    // Render the full-screen quad
+    glBindVertexArray(fsQuad);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+
+    shader.disable();
     // Draw crosshair and locator in fps mode, or target when in observing mode(fpsmode == 0).
     if (fpsmode == 0) {
         glDisable(GL_DEPTH_TEST);
@@ -115,13 +121,10 @@ void Redraw() {
         drawLocator(camera_locator, LOCATOR_SIZE);
         glEnable(GL_DEPTH_TEST);
     }
-
     // Draw lights
     drawLocator(lightPosition0, LOCATOR_SIZE);
-
     // Show fps, message and other information
     PrintStatus();
-
     glutSwapBuffers();
     GLUtils::checkForOpenGLError(__FILE__, __LINE__);
 }
@@ -505,33 +508,57 @@ void PrintStatus() {
 }
 
 void initVBO() {
-//    plane = new VBOPlane(50.0f, 50.0f, 1, 1);
+    plane = new VBOPlane(50.0f, 50.0f, 1, 1);
     teapot = new VBOTeapot(14, glm::mat4(1.0f));
-//    torus = new VBOTorus(0.7f * 2, 0.3f * 2, 50, 50);
-    cube = new VBOCube();
+    torus = new VBOTorus(0.7f * 2, 0.3f * 2, 50, 50);
+//    cube = new VBOCube();
 }
 
 void setShader() {
+    GLuint shaderProgram = shader.getProgram();
+    pass1Index = glGetSubroutineIndex(shaderProgram, GL_FRAGMENT_SHADER, "pass1");
+    pass2Index = glGetSubroutineIndex(shaderProgram, GL_FRAGMENT_SHADER, "pass2");
+
 //    shader.setUniform("Ka", 0.9f, 0.5f, 0.3f);
 //    shader.setUniform("Kd", 0.9f, 0.5f, 0.3f);
 //    shader.setUniform("Ks", 0.8f, 0.8f, 0.8f);
 //    shader.setUniform("Shininess", 100.0f);
+    shader.setUniform("EdgeThreshold", 0.05f);
+    shader.setUniform("Width", window[W]);
+    shader.setUniform("Height", window[H]);
     shader.setUniform("Light.Intensity", vec3(1.0f, 1.0f, 1.0f));
 
     updateShaderMVP();
 }
 
-void updateMVPLeft() {
-    model = mat4(1.0f);
-    model = glm::translate(model, vec3(0.0f, 0.0f, 0.0f));
-    model = glm::rotate(model, glm::radians(angle), vec3(0.0f, 1.0f, 0.0f));
-    model = glm::rotate(model, glm::radians(-90.0f), vec3(1.0f, 0.0f, 0.0f));
+void updateMVPZero() {
     view = glm::lookAt(vec3(camera[X], camera[Y], camera[Z]), vec3(target[X], target[Y], target[Z]),
                        vec3(0.0f, 1.0f, 0.0f));
     projection = glm::perspective(45.0f, 1.7778f, 0.1f, 30000.0f);
+    shader.setUniform("Light.Position", view * vec4(0.0f, 0.0f, 10.0f, 1.0f));
+}
 
-    shader.setUniform("Light.Position", vec4(0.0f, 0.0f, 10.0f, 1.0f));
+void updateMVPOne() {
+    model = mat4(1.0f);
+    model = glm::translate(model, vec3(-2.0f, -1.5f, 0.0f));
+    model = glm::rotate(model, glm::radians(angle), vec3(0.0f, 1.0f, 0.0f));
+    model = glm::rotate(model, glm::radians(-90.0f), vec3(1.0f, 0.0f, 0.0f));
+
     shader.setUniform("Material.Kd", 0.9f, 0.9f, 0.9f);
+    shader.setUniform("Material.Ks", 0.95f, 0.95f, 0.95f);
+    shader.setUniform("Material.Ka", 0.1f, 0.1f, 0.1f);
+    shader.setUniform("Material.Shininess", 100.0f);
+
+    updateShaderMVP();
+}
+
+void updateMVPTwo() {
+    model = mat4(1.0f);
+    model = glm::translate(model, vec3(0.0f, -2.0f, 0.0f));
+//    model = glm::rotate(model, glm::radians(angle), vec3(0.0f, 1.0f, 0.0f));
+//    model = glm::rotate(model, glm::radians(-90.0f), vec3(1.0f, 0.0f, 0.0f));
+
+    shader.setUniform("Material.Kd", 0.4f, 0.4f, 0.4f);
     shader.setUniform("Material.Ks", 0.0f, 0.0f, 0.0f);
     shader.setUniform("Material.Ka", 0.1f, 0.1f, 0.1f);
     shader.setUniform("Material.Shininess", 1.0f);
@@ -539,19 +566,13 @@ void updateMVPLeft() {
     updateShaderMVP();
 }
 
-void updateMVPRight() {
+void updateMVPThree() {
     model = mat4(1.0f);
-    model = glm::translate(model, vec3(0.0f, -1.5f, 0.0f));
+    model = glm::translate(model, vec3(2.0f, 0.0f, 0.0f));
     model = glm::rotate(model, glm::radians(angle), vec3(0.0f, 1.0f, 0.0f));
-    model = glm::rotate(model, glm::radians(-90.0f), vec3(1.0f, 0.0f, 0.0f));
-//    view = glm::lookAt(vec3(camera[X], camera[Y], camera[Z]), vec3(target[X], target[Y], target[Z]),
-//                       vec3(0.0f, 1.0f, 0.0f));
-//    projection = glm::perspective(45.0f, 1.7778f, 0.1f, 30000.0f);
-    view = glm::lookAt(vec3(0.0f, 0.0f, 7.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
-    projection = glm::perspective(glm::radians(60.0f), 1.0f, 0.3f, 100.0f);
+    model = glm::rotate(model, glm::radians(90.0f), vec3(1.0f, 0.0f, 0.0f));
 
-    shader.setUniform("Light.Position", vec4(0.0f, 0.0f, 0.0f, 1.0f));
-    shader.setUniform("Material.Kd", 0.9f, 0.9f, 0.9f);
+    shader.setUniform("Material.Kd", 0.9f, 0.5f, 0.2f);
     shader.setUniform("Material.Ks", 0.95f, 0.95f, 0.95f);
     shader.setUniform("Material.Ka", 0.1f, 0.1f, 0.1f);
     shader.setUniform("Material.Shininess", 100.0f);
@@ -572,17 +593,16 @@ void setupFBO() {
     glBindFramebuffer(GL_FRAMEBUFFER, fboHandle);
 
     // Create the texture object
-    GLuint renderTex;
     glGenTextures(1, &renderTex);
-    glActiveTexture(GL_TEXTURE0);  // Use texture unit 0
     glBindTexture(GL_TEXTURE_2D, renderTex);
 #ifdef __APPLE__
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 512, 512, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 #else
-    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 512, 512);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 1280, 720);
 #endif
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
 
     // Bind the texture to the FBO
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderTex, 0);
@@ -591,7 +611,7 @@ void setupFBO() {
     GLuint depthBuf;
     glGenRenderbuffers(1, &depthBuf);
     glBindRenderbuffer(GL_RENDERBUFFER, depthBuf);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, 512, 512);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, 1280, 720);
 
     // Bind the depth buffer to the FBO
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
@@ -610,18 +630,42 @@ void setupFBO() {
 
     // Unbind the framebuffer, and revert to default framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
 
-    // One pixel white texture
-    GLuint whiteTexHandle;
-    GLubyte whiteTex[] = {255, 255, 255, 255};
-    // 为什么不能绑定到0？ 看来这不是每个帧缓存之间隔离的，但是为什么在画茶壶的时候自动使用了1号纹理？
-    glActiveTexture(GL_TEXTURE1);
-    glGenTextures(1, &whiteTexHandle);
-    glBindTexture(GL_TEXTURE_2D, whiteTexHandle);
-#ifdef __APPLE__
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-#else
-    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 1, 1);
-#endif
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, whiteTex);
+void setupVAO() {
+    // Array for full-screen quad
+    GLfloat verts[] = {
+            -1.0f, -1.0f, 0.0f, 1.0f, -1.0f, 0.0f, 1.0f, 1.0f, 0.0f,
+            -1.0f, -1.0f, 0.0f, 1.0f, 1.0f, 0.0f, -1.0f, 1.0f, 0.0f
+    };
+    GLfloat tc[] = {
+            0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f,
+            0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f
+    };
+
+    // Set up the buffers
+
+    unsigned int handle[2];
+    glGenBuffers(2, handle);
+
+    glBindBuffer(GL_ARRAY_BUFFER, handle[0]);
+    glBufferData(GL_ARRAY_BUFFER, 6 * 3 * sizeof(float), verts, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ARRAY_BUFFER, handle[1]);
+    glBufferData(GL_ARRAY_BUFFER, 6 * 2 * sizeof(float), tc, GL_STATIC_DRAW);
+
+    // Set up the vertex array object
+
+    glGenVertexArrays(1, &fsQuad);
+    glBindVertexArray(fsQuad);
+
+    glBindBuffer(GL_ARRAY_BUFFER, handle[0]);
+    glVertexAttribPointer((GLuint) 0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(0);  // Vertex position
+
+    glBindBuffer(GL_ARRAY_BUFFER, handle[1]);
+    glVertexAttribPointer((GLuint) 2, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(2);  // Texture coordinates
+
+    glBindVertexArray(0);
 }
