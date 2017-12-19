@@ -1,31 +1,47 @@
 #version 430
 
-layout(points) in;
-layout(triangle_strip, max_vertices = 4) out;
+layout(triangles) in;
+layout(triangle_strip, max_vertices = 3) out;
 
-uniform float Size2;    // Half the width of the quad
+out vec3 GNormal;
+out vec3 VPosition;
+noperspective out vec3 GEdgeDistance;
 
-uniform mat4 ProjectionMatrix;
+in vec3 VNormal[];
+in vec3 VPosition[];
 
-out vec2 TexCoord;
+uniform mat4 ViewportMatrix;
 
 void main() {
-    mat4 m = ProjectionMatrix;  // Reassign for brevity
+    vec3 p0 = vec3(ViewportMatrix * (gl_in[0].gl_Position / gl_in[0].glPosition.w));
+    vec3 p1 = vec3(ViewportMatrix * (gl_in[1].gl_Position / gl_in[1].glPosition.w));
+    vec3 p2 = vec3(ViewportMatrix * (gl_in[2].gl_Position / gl_in[2].glPosition.w));
 
-    gl_Position = m * (vec4(-Size2, -Size2, 0.0, 0.0) + gl_in[0].gl_Position);
-    TexCoord = vec2(0.0, 0.0);
+    float a = length(p1 - p2);
+    float b = length(p2 - p0);
+    float c = length(p1 - p0);
+    float alpha = acos((b * b + c * c - a * a) / (2.0 * b * c));
+    float beta = acos((a * a + c * c - b * b) / (2.0 * a * c));
+    float ha = abs(c * sin(beta));
+    float hb = abs(c * sin(alpha));
+    float hc = abs(b * sin(alpha));
+
+    GEdgeDistance = vec3(ha, 0, 0);
+    GNormal = VNormal[0];
+    GPosition = VPosition[0];
+    gl_Position = gl_in[0].gl_Position;
     EmitVertex();
 
-    gl_Position = m * (vec4(Size2, -Size2, 0.0, 0.0) + gl_in[0].gl_Position);
-    TexCoord = vec2(1.0, 0.0);
+    GEdgeDistance = vec3(0, hb, 0);
+    GNormal = VNormal[1];
+    GPosition = VPosition[1];
+    gl_Position = gl_in[1].gl_Position;
     EmitVertex();
 
-    gl_Position = m * (vec4(-Size2, Size2, 0.0, 0.0) + gl_in[0].gl_Position);
-    TexCoord = vec2(0.0, 1.0);
-    EmitVertex();
-
-    gl_Position = m * (vec4(Size2, Size2, 0.0, 0.0) + gl_in[0].gl_Position);
-    TexCoord = vec2(1.0, 1.0);
+    GEdgeDistance = vec3(0, 0, hc);
+    GNormal = VNormal[2];
+    GPosition = VPosition[2];
+    gl_Position = gl_in[2].gl_Position;
     EmitVertex();
 
     EndPrimitive();
