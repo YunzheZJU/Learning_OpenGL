@@ -13,7 +13,8 @@ Shader shader = Shader();
 //VBOTeapot *teapot;
 //VBOTorus *torus;
 //VBOCube *cube;
-VBOMesh *ogre;
+//VBOMesh *ogre;
+VBOMeshAdj *ogre;
 //GLuint deferredFBO;
 //GLuint pass1Index;
 //GLuint pass2Index;
@@ -61,10 +62,10 @@ void Reshape(int width, int height) {
     window[H] = height;
     float w2 = width / 2.0f;
     float h2 = height / 2.0f;
-    viewport = mat4( vec4(w2,0.0f,0.0f,0.0f),
-                     vec4(0.0f,h2,0.0f,0.0f),
-                     vec4(0.0f,0.0f,1.0f,0.0f),
-                     vec4(w2+0, h2+0, 0.0f, 1.0f));
+    viewport = mat4(vec4(w2, 0.0f, 0.0f, 0.0f),
+                    vec4(0.0f, h2, 0.0f, 0.0f),
+                    vec4(0.0f, 0.0f, 1.0f, 0.0f),
+                    vec4(w2 + 0, h2 + 0, 0.0f, 1.0f));
     updateWindowcenter(window, windowcenter);
 
     glMatrixMode(GL_PROJECTION);            // Select The Projection Matrix
@@ -499,15 +500,16 @@ void initVBO() {
 //    teapot = new VBOTeapot(14, glm::mat4(1.0f));
 //    torus = new VBOTorus(0.7f * 2, 0.3f * 2, 50, 50);
 //    cube = new VBOCube();
-    ogre = new VBOMesh("media/bs_ears.obj");
+    ogre = new VBOMeshAdj("media/bs_ears.obj");
 }
 
 void setShader() {
     ///////////// Uniforms ////////////////////
-    shader.setUniform("Line.Width", 0.75f);
-    shader.setUniform("Line.Color", vec4(0.05f,0.0f,0.05f,1.0f));
+    shader.setUniform("EdgeWidth", 0.015f);
+    shader.setUniform("PctExtend", 0.25f);
+    shader.setUniform("LineColor", vec4(0.05f, 0.0f, 0.05f, 1.0f));
     shader.setUniform("Material.Kd", 0.7f, 0.7f, 0.7f);
-    shader.setUniform("Light.Position", vec4(0.0f,0.0f,10.0f, 1.0f));
+    shader.setUniform("Light.Position", vec4(0.0f, 0.0f, 10.0f, 1.0f));
     shader.setUniform("Material.Ka", 0.2f, 0.2f, 0.2f);
     shader.setUniform("Light.Intensity", 1.0f, 1.0f, 1.0f);
     shader.setUniform("Material.Ks", 0.8f, 0.8f, 0.8f);
@@ -571,43 +573,16 @@ void setupFBO() {
 }
 
 void setupVAO() {
-    numSprites = 50;
-    locations = new float[numSprites * 3];
-    srand((unsigned int) time(0));
-    for (int i = 0; i < numSprites; i++) {
-        vec3 p(((float) rand() / RAND_MAX * 2.0f) - 1.0f,
-               ((float) rand() / RAND_MAX * 2.0f) - 1.0f,
-               ((float) rand() / RAND_MAX * 2.0f) - 1.0f);
-        locations[i * 3] = p.x * 10;
-        locations[i * 3 + 1] = p.y * 10;
-        locations[i * 3 + 2] = p.z * 10;
-    }
-
-    // Set up the buffers
-    GLuint handle;
-    glGenBuffers(1, &handle);
-
-    glBindBuffer(GL_ARRAY_BUFFER, handle);
-    glBufferData(GL_ARRAY_BUFFER, numSprites * 3 * sizeof(float), locations, GL_STATIC_DRAW);
-
-    delete[] locations;
-
-    // Set up the vertex array object
-    glGenVertexArrays(1, &sprites);
-    glBindVertexArray(sprites);
-
-    glBindBuffer(GL_ARRAY_BUFFER, handle);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, ((GLubyte *) NULL + (0)));
-    glEnableVertexAttribArray(0);  // Vertex position
-
-    glBindVertexArray(0);
 }
 
 void initShader() {
     try {
-        shader.compileShader("basic.vert");
-        shader.compileShader("basic.geom");
-        shader.compileShader("basic.frag");
+        shader.compileShader("basic.vert", GLSLShader::VERTEX);
+        shader.compileShader("basic.frag", GLSLShader::FRAGMENT);
+        shader.compileShader("basic.geom", GLSLShader::GEOMETRY);
+//        shader.compileShader("basic.vert");
+//        shader.compileShader("basic.geom");
+//        shader.compileShader("basic.frag");
         shader.link();
         shader.use();
     } catch (GLSLProgramException &e) {

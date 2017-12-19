@@ -17,6 +17,7 @@
 #include "vbomesh.h"
 #include "vboplane.h"
 #include "vbocube.h"
+#include "vbomeshadj.h"
 #include "tgaio.h"
 #include "bmpreader.h"
 
