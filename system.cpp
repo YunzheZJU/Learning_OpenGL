@@ -14,7 +14,8 @@ Shader shader = Shader();
 //VBOTorus *torus;
 //VBOCube *cube;
 //VBOMesh *ogre;
-VBOMeshAdj *ogre;
+//VBOMeshAdj *ogre;
+GLuint vboHandle;
 //GLuint deferredFBO;
 //GLuint pass1Index;
 //GLuint pass2Index;
@@ -25,9 +26,9 @@ VBOMeshAdj *ogre;
 //GLuint intermediateTex2;
 //GLuint linearSampler;
 //GLuint nearestSampler;
-GLuint sprites;
-int numSprites;
-float *locations;
+//GLuint sprites;
+//int numSprites;
+//float *locations;
 //GLuint fsQuad;
 mat4 model;
 mat4 view;
@@ -91,9 +92,11 @@ void Redraw() {
     angle += 0.5f;
     glEnable(GL_DEPTH_TEST);
     // Draw something here
+    glBindVertexArray(vaoHandle);
     updateMVPZero();
     updateMVPOne();
-    ogre->render();
+    glDrawArrays(GL_PATCHES, 0, 4);
+//    ogre->render();
 //    DrawScene();
     shader.disable();
     // Draw crosshair and locator in fps mode, or target when in observing mode(fpsmode == 0).
@@ -500,20 +503,29 @@ void initVBO() {
 //    teapot = new VBOTeapot(14, glm::mat4(1.0f));
 //    torus = new VBOTorus(0.7f * 2, 0.3f * 2, 50, 50);
 //    cube = new VBOCube();
-    ogre = new VBOMeshAdj("media/bs_ears.obj");
+//    ogre = new VBOMeshAdj("media/bs_ears.obj");
+    float v[] = {-1.0f, -1.0f, -1.0f, -0.5f, 1.0f, 1.5f, 0.5f, -1.0f, -1.5f, 1.0f, 1.0f, -1.0f};
+
+    glGenBuffers(1, &vboHandle);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vboHandle);
+    glBufferData(GL_ARRAY_BUFFER, 12 * sizeof(float), v, GL_STATIC_DRAW);
 }
 
 void setShader() {
     ///////////// Uniforms ////////////////////
-    shader.setUniform("EdgeWidth", 0.015f);
-    shader.setUniform("PctExtend", 0.25f);
-    shader.setUniform("LineColor", vec4(0.05f, 0.0f, 0.05f, 1.0f));
-    shader.setUniform("Material.Kd", 0.7f, 0.7f, 0.7f);
-    shader.setUniform("Light.Position", vec4(0.0f, 0.0f, 10.0f, 1.0f));
-    shader.setUniform("Material.Ka", 0.2f, 0.2f, 0.2f);
-    shader.setUniform("Light.Intensity", 1.0f, 1.0f, 1.0f);
-    shader.setUniform("Material.Ks", 0.8f, 0.8f, 0.8f);
-    shader.setUniform("Material.Shininess", 100.0f);
+//    shader.setUniform("EdgeWidth", 0.015f);
+//    shader.setUniform("PctExtend", 0.25f);
+//    shader.setUniform("LineColor", vec4(0.05f, 0.0f, 0.05f, 1.0f));
+//    shader.setUniform("Material.Kd", 0.7f, 0.7f, 0.7f);
+//    shader.setUniform("Light.Position", vec4(0.0f, 0.0f, 10.0f, 1.0f));
+//    shader.setUniform("Material.Ka", 0.2f, 0.2f, 0.2f);
+//    shader.setUniform("Light.Intensity", 1.0f, 1.0f, 1.0f);
+//    shader.setUniform("Material.Ks", 0.8f, 0.8f, 0.8f);
+//    shader.setUniform("Material.Shininess", 100.0f);
+    shader.setUniform("NumSegments", 50);
+    shader.setUniform("NumStrips", 1);
+    shader.setUniform("LineColor", vec4(1.0f,1.0f,0.5f,1.0f));
     /////////////////////////////////////////////
     updateShaderMVP();
 }
@@ -526,7 +538,7 @@ void updateMVPZero() {
 
 void updateMVPOne() {
     model = mat4(1.0f);
-    model = glm::rotate(model, glm::radians(angle), vec3(0.0f, 1.0f, 0.0f));
+//    model = glm::rotate(model, glm::radians(angle), vec3(0.0f, 1.0f, 0.0f));
 //    model = glm::rotate(model, glm::radians(-90.0f), vec3(1.0f, 0.0f, 0.0f));
 
     updateShaderMVP();
@@ -573,16 +585,29 @@ void setupFBO() {
 }
 
 void setupVAO() {
+    glGenVertexArrays(1, &vaoHandle);
+    glBindVertexArray(vaoHandle);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vboHandle);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(0);
+
+    glBindVertexArray(0);
+
+    // Set the number of vertices per patch.  IMPORTANT!!
+    glPatchParameteri(GL_PATCH_VERTICES, 4);
 }
 
 void initShader() {
     try {
-        shader.compileShader("basic.vert", GLSLShader::VERTEX);
-        shader.compileShader("basic.frag", GLSLShader::FRAGMENT);
-        shader.compileShader("basic.geom", GLSLShader::GEOMETRY);
-//        shader.compileShader("basic.vert");
+//        shader.compileShader("basic.vert", GLSLShader::VERTEX);
+//        shader.compileShader("basic.frag", GLSLShader::FRAGMENT);
+//        shader.compileShader("basic.geom", GLSLShader::GEOMETRY);
+        shader.compileShader("basic.vert");
+        shader.compileShader("basic.tcs");
+        shader.compileShader("basic.tes");
 //        shader.compileShader("basic.geom");
-//        shader.compileShader("basic.frag");
+        shader.compileShader("basic.frag");
         shader.link();
         shader.use();
     } catch (GLSLProgramException &e) {
