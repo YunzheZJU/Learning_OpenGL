@@ -13,6 +13,7 @@ Shader shader = Shader();
 //VBOTeapot *teapot;
 //VBOTorus *torus;
 //VBOCube *cube;
+VBOMesh *ogre;
 //GLuint deferredFBO;
 //GLuint pass1Index;
 //GLuint pass2Index;
@@ -30,6 +31,7 @@ float *locations;
 mat4 model;
 mat4 view;
 mat4 projection;
+mat4 viewport;
 GLfloat camera[3] = {0, 0, 5};                    // Position of camera
 GLfloat target[3] = {0, 0, 0};                    // Position of target of camera
 GLfloat camera_polar[3] = {5, -1.57f, 0};            // Polar coordinates of camera
@@ -57,8 +59,12 @@ void Reshape(int width, int height) {
     glViewport(static_cast<GLint>(width / 2.0 - 640), static_cast<GLint>(height / 2.0 - 360), 1280, 720);
     window[W] = width;
     window[H] = height;
-    shader.setUniform("Width", window[W]);
-    shader.setUniform("Height", window[H]);
+    float w2 = width / 2.0f;
+    float h2 = height / 2.0f;
+    viewport = mat4( vec4(w2,0.0f,0.0f,0.0f),
+                     vec4(0.0f,h2,0.0f,0.0f),
+                     vec4(0.0f,0.0f,1.0f,0.0f),
+                     vec4(w2+0, h2+0, 0.0f, 1.0f));
     updateWindowcenter(window, windowcenter);
 
     glMatrixMode(GL_PROJECTION);            // Select The Projection Matrix
@@ -86,8 +92,7 @@ void Redraw() {
     // Draw something here
     updateMVPZero();
     updateMVPOne();
-    glBindVertexArray(sprites);
-    glDrawArrays(GL_POINTS, 0, numSprites);
+    ogre->render();
 //    DrawScene();
     shader.disable();
     // Draw crosshair and locator in fps mode, or target when in observing mode(fpsmode == 0).
@@ -494,17 +499,20 @@ void initVBO() {
 //    teapot = new VBOTeapot(14, glm::mat4(1.0f));
 //    torus = new VBOTorus(0.7f * 2, 0.3f * 2, 50, 50);
 //    cube = new VBOCube();
+    ogre = new VBOMesh("media/bs_ears.obj");
 }
 
 void setShader() {
-    // Load texture file
-    GLuint w, h;
-    const char *texName = "media/texture/flower.bmp";
-    BMPReader::loadTex(texName, w, h);
-
-    shader.setUniform("SpriteTex", 0);
-    shader.setUniform("Size2", 0.5f);
-
+    ///////////// Uniforms ////////////////////
+    shader.setUniform("Line.Width", 0.75f);
+    shader.setUniform("Line.Color", vec4(0.05f,0.0f,0.05f,1.0f));
+    shader.setUniform("Material.Kd", 0.7f, 0.7f, 0.7f);
+    shader.setUniform("Light.Position", vec4(0.0f,0.0f,10.0f, 1.0f));
+    shader.setUniform("Material.Ka", 0.2f, 0.2f, 0.2f);
+    shader.setUniform("Light.Intensity", 1.0f, 1.0f, 1.0f);
+    shader.setUniform("Material.Ks", 0.8f, 0.8f, 0.8f);
+    shader.setUniform("Material.Shininess", 100.0f);
+    /////////////////////////////////////////////
     updateShaderMVP();
 }
 
@@ -516,6 +524,8 @@ void updateMVPZero() {
 
 void updateMVPOne() {
     model = mat4(1.0f);
+    model = glm::rotate(model, glm::radians(angle), vec3(0.0f, 1.0f, 0.0f));
+//    model = glm::rotate(model, glm::radians(-90.0f), vec3(1.0f, 0.0f, 0.0f));
 
     updateShaderMVP();
 }
@@ -551,9 +561,10 @@ void updateMVPThree() {
 void updateShaderMVP() {
     mat4 mv = view * model;
     shader.setUniform("ModelViewMatrix", mv);
-    shader.setUniform("ProjectionMatrix", projection);
-//    shader.setUniform("NormalMatrix", mat3(vec3(mv[0]), vec3(mv[1]), vec3(mv[2])));
-//    shader.setUniform("MVP", projection * mv);
+//    shader.setUniform("ProjectionMatrix", projection);
+    shader.setUniform("NormalMatrix", mat3(vec3(mv[0]), vec3(mv[1]), vec3(mv[2])));
+    shader.setUniform("MVP", projection * mv);
+    shader.setUniform("ViewportMatrix", viewport);
 }
 
 void setupFBO() {
