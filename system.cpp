@@ -6,11 +6,11 @@
 
 #include "system.h"
 #include "glutils.h"
-#include <sstream>
 
 Shader shader = Shader();
 //VBOPlane *plane;
 //VBOTeapot *teapot;
+VBOTeapotPatch *teapot;
 //VBOTorus *torus;
 //VBOCube *cube;
 //VBOMesh *ogre;
@@ -94,9 +94,7 @@ void Redraw() {
     // Draw something here
     updateMVPZero();
     updateMVPOne();
-    glBindVertexArray(vaoHandle);
-    glDrawArrays(GL_PATCHES, 0, 4);
-//    ogre->render();
+    teapot->render();
 //    DrawScene();
     shader.disable();
     // Draw crosshair and locator in fps mode, or target when in observing mode(fpsmode == 0).
@@ -501,25 +499,20 @@ void PrintStatus() {
 void initVBO() {
 //    plane = new VBOPlane(50.0f, 50.0f, 1, 1);
 //    teapot = new VBOTeapot(14, glm::mat4(1.0f));
+    teapot = new VBOTeapotPatch();
 //    torus = new VBOTorus(0.7f * 2, 0.3f * 2, 50, 50);
 //    cube = new VBOCube();
 //    ogre = new VBOMeshAdj("media/bs_ears.obj");
-    float v[] = {-1.0f, -1.0f, 0.0f, 1.0f, -1.0f, 0.0f, 1.0f, 1.0f, 0.0f, -1.0f, 1.0f, 0.0f};
-
-    glGenBuffers(1, &vboHandle);
-
-    glBindBuffer(GL_ARRAY_BUFFER, vboHandle);
-    glBufferData(GL_ARRAY_BUFFER, 12 * sizeof(float), v, GL_STATIC_DRAW);
 }
 
 void setShader() {
     ///////////// Uniforms ////////////////////
-    shader.setUniform("Inner", 4);
-    shader.setUniform("Outer", 4);
-    shader.setUniform("LineWidth", 1.5f);
+    shader.setUniform("TessLevel", 3216;
+    shader.setUniform("LineWidth", 0.1f);
     shader.setUniform("LineColor", vec4(0.05f, 0.0f, 0.05f, 1.0f));
-    shader.setUniform("QuadColor", vec4(1.0f, 1.0f, 1.0f, 1.0f));
+    shader.setUniform("Light.Intensity", vec3(1.0f, 1.0f, 1.0f));
     /////////////////////////////////////////////
+    glPatchParameteri(GL_PATCH_VERTICES, 16);
     updateShaderMVP();
 }
 
@@ -527,12 +520,18 @@ void updateMVPZero() {
     view = glm::lookAt(vec3(camera[X], camera[Y], camera[Z]), vec3(target[X], target[Y], target[Z]),
                        vec3(0.0f, 1.0f, 0.0f));
     projection = glm::perspective(45.0f, 1.7778f, 0.1f, 30000.0f);
+    shader.setUniform("Light.Position", view * vec4(0.0f, 0.0f, 10.0f, 1.0f));
 }
 
 void updateMVPOne() {
     model = mat4(1.0f);
+    model = glm::translate(model, vec3(0.0f,-1.5f,0.0f));
 //    model = glm::rotate(model, glm::radians(angle), vec3(0.0f, 1.0f, 0.0f));
-//    model = glm::rotate(model, glm::radians(-90.0f), vec3(1.0f, 0.0f, 0.0f));
+    model = glm::rotate(model, glm::radians(-90.0f), vec3(1.0f, 0.0f, 0.0f));
+    shader.setUniform("Material.Kd", 0.9f, 0.5f, 0.2f);
+    shader.setUniform("Material.Ks", 0.95f, 0.95f, 0.95f);
+    shader.setUniform("Material.Ka", 0.1f, 0.1f, 0.1f);
+    shader.setUniform("Material.Shininess", 100.0f);
 
     updateShaderMVP();
 }

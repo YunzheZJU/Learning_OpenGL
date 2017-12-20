@@ -18,6 +18,7 @@
 #include "vboplane.h"
 #include "vbocube.h"
 #include "vbomeshadj.h"
+#include "vboteapotpatch.h"
 #include "tgaio.h"
 #include "bmpreader.h"
 
