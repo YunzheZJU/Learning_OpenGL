@@ -95,6 +95,10 @@ void Redraw() {
     updateMVPZero();
     updateMVPOne();
     teapot->render();
+    updateMVPTwo();
+    teapot->render();
+    updateMVPThree();
+    teapot->render();
 //    DrawScene();
     shader.disable();
     // Draw crosshair and locator in fps mode, or target when in observing mode(fpsmode == 0).
@@ -507,7 +511,11 @@ void initVBO() {
 
 void setShader() {
     ///////////// Uniforms ////////////////////
-    shader.setUniform("TessLevel", 3216);
+//    shader.setUniform("TessLevel", 16);
+    shader.setUniform("MinTessLevel", 2);
+    shader.setUniform("MaxTessLevel", 16);
+    shader.setUniform("MaxDepth", 20.0f);
+    shader.setUniform("MinDepth", 2.0f);
     shader.setUniform("LineWidth", 0.1f);
     shader.setUniform("LineColor", vec4(0.05f, 0.0f, 0.05f, 1.0f));
     shader.setUniform("Light.Intensity", vec3(1.0f, 1.0f, 1.0f));
@@ -525,7 +533,7 @@ void updateMVPZero() {
 
 void updateMVPOne() {
     model = mat4(1.0f);
-    model = glm::translate(model, vec3(0.0f,-1.5f,0.0f));
+    model = glm::translate(model, vec3(0.0f, -1.5f, 0.0f));
 //    model = glm::rotate(model, glm::radians(angle), vec3(0.0f, 1.0f, 0.0f));
     model = glm::rotate(model, glm::radians(-90.0f), vec3(1.0f, 0.0f, 0.0f));
     shader.setUniform("Material.Kd", 0.9f, 0.5f, 0.2f);
@@ -538,28 +546,30 @@ void updateMVPOne() {
 
 void updateMVPTwo() {
     model = mat4(1.0f);
-    model = glm::translate(model, vec3(0.0f, -2.0f, 0.0f));
+    model = glm::translate(model, vec3(6.0f, -1.5f, 0.0f));
 //    model = glm::rotate(model, glm::radians(angle), vec3(0.0f, 1.0f, 0.0f));
 //    model = glm::rotate(model, glm::radians(-90.0f), vec3(1.0f, 0.0f, 0.0f));
+    model = glm::rotate(model, glm::radians(-90.0f), vec3(1.0f, 0.0f, 0.0f));
 
-    shader.setUniform("Material.Kd", 0.4f, 0.4f, 0.4f);
-    shader.setUniform("Material.Ks", 0.0f, 0.0f, 0.0f);
-    shader.setUniform("Material.Ka", 0.1f, 0.1f, 0.1f);
-    shader.setUniform("Material.Shininess", 1.0f);
+//    shader.setUniform("Material.Kd", 0.4f, 0.4f, 0.4f);
+//    shader.setUniform("Material.Ks", 0.0f, 0.0f, 0.0f);
+//    shader.setUniform("Material.Ka", 0.1f, 0.1f, 0.1f);
+//    shader.setUniform("Material.Shininess", 1.0f);
 
     updateShaderMVP();
 }
 
 void updateMVPThree() {
     model = mat4(1.0f);
-    model = glm::translate(model, vec3(2.0f, 0.0f, 0.0f));
-    model = glm::rotate(model, glm::radians(angle), vec3(0.0f, 1.0f, 0.0f));
-    model = glm::rotate(model, glm::radians(90.0f), vec3(1.0f, 0.0f, 0.0f));
+    model = glm::translate(model, vec3(12.0f, -1.5f, 0.0f));
+//    model = glm::rotate(model, glm::radians(angle), vec3(0.0f, 1.0f, 0.0f));
+//    model = glm::rotate(model, glm::radians(90.0f), vec3(1.0f, 0.0f, 0.0f));
+    model = glm::rotate(model, glm::radians(-90.0f), vec3(1.0f, 0.0f, 0.0f));
 
-    shader.setUniform("Material.Kd", 0.9f, 0.5f, 0.2f);
-    shader.setUniform("Material.Ks", 0.95f, 0.95f, 0.95f);
-    shader.setUniform("Material.Ka", 0.1f, 0.1f, 0.1f);
-    shader.setUniform("Material.Shininess", 100.0f);
+//    shader.setUniform("Material.Kd", 0.9f, 0.5f, 0.2f);
+//    shader.setUniform("Material.Ks", 0.95f, 0.95f, 0.95f);
+//    shader.setUniform("Material.Ka", 0.1f, 0.1f, 0.1f);
+//    shader.setUniform("Material.Shininess", 100.0f);
 
     updateShaderMVP();
 }
