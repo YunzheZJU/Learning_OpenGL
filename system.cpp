@@ -92,9 +92,9 @@ void Redraw() {
     angle += 0.5f;
     glEnable(GL_DEPTH_TEST);
     // Draw something here
-    glBindVertexArray(vaoHandle);
     updateMVPZero();
     updateMVPOne();
+    glBindVertexArray(vaoHandle);
     glDrawArrays(GL_PATCHES, 0, 4);
 //    ogre->render();
 //    DrawScene();
@@ -504,7 +504,7 @@ void initVBO() {
 //    torus = new VBOTorus(0.7f * 2, 0.3f * 2, 50, 50);
 //    cube = new VBOCube();
 //    ogre = new VBOMeshAdj("media/bs_ears.obj");
-    float v[] = {-1.0f, -1.0f, -1.0f, -0.5f, 1.0f, 1.5f, 0.5f, -1.0f, -1.5f, 1.0f, 1.0f, -1.0f};
+    float v[] = {-1.0f, -1.0f, 0.0f, 1.0f, -1.0f, 0.0f, 1.0f, 1.0f, 0.0f, -1.0f, 1.0f, 0.0f};
 
     glGenBuffers(1, &vboHandle);
 
@@ -514,18 +514,11 @@ void initVBO() {
 
 void setShader() {
     ///////////// Uniforms ////////////////////
-//    shader.setUniform("EdgeWidth", 0.015f);
-//    shader.setUniform("PctExtend", 0.25f);
-//    shader.setUniform("LineColor", vec4(0.05f, 0.0f, 0.05f, 1.0f));
-//    shader.setUniform("Material.Kd", 0.7f, 0.7f, 0.7f);
-//    shader.setUniform("Light.Position", vec4(0.0f, 0.0f, 10.0f, 1.0f));
-//    shader.setUniform("Material.Ka", 0.2f, 0.2f, 0.2f);
-//    shader.setUniform("Light.Intensity", 1.0f, 1.0f, 1.0f);
-//    shader.setUniform("Material.Ks", 0.8f, 0.8f, 0.8f);
-//    shader.setUniform("Material.Shininess", 100.0f);
-    shader.setUniform("NumSegments", 50);
-    shader.setUniform("NumStrips", 1);
-    shader.setUniform("LineColor", vec4(1.0f,1.0f,0.5f,1.0f));
+    shader.setUniform("Inner", 4);
+    shader.setUniform("Outer", 4);
+    shader.setUniform("LineWidth", 1.5f);
+    shader.setUniform("LineColor", vec4(0.05f, 0.0f, 0.05f, 1.0f));
+    shader.setUniform("QuadColor", vec4(1.0f, 1.0f, 1.0f, 1.0f));
     /////////////////////////////////////////////
     updateShaderMVP();
 }
@@ -596,6 +589,10 @@ void setupVAO() {
 
     // Set the number of vertices per patch.  IMPORTANT!!
     glPatchParameteri(GL_PATCH_VERTICES, 4);
+
+    GLint maxVerts;
+    glGetIntegerv(GL_MAX_PATCH_VERTICES, &maxVerts);
+    printf("Max patch vertices: %d\n", maxVerts);
 }
 
 void initShader() {
@@ -606,7 +603,7 @@ void initShader() {
         shader.compileShader("basic.vert");
         shader.compileShader("basic.tcs");
         shader.compileShader("basic.tes");
-//        shader.compileShader("basic.geom");
+        shader.compileShader("basic.geom");
         shader.compileShader("basic.frag");
         shader.link();
         shader.use();

@@ -14,14 +14,28 @@
 //};
 //uniform MaterialInfo Material;
 
+uniform float LineWidth;
 uniform vec4 LineColor;
+uniform vec4 QuadColor;
 
-//in vec3 GPosition;
-//in vec3 GNormal;
-//
-//flat in int GIsEdge;
+noperspective in vec3 EdgeDistance;
 
 layout(location = 0) out vec4 FragColor;
+
+float edgeMix() {
+    float d = min(min(EdgeDistance.x, EdgeDistance.y), EdgeDistance.z);
+
+    if (d < LineWidth - 1) {
+        return 1.0;
+    }
+    else if (d > LineWidth + 1) {
+        return 0.0;
+    }
+    else {
+        float x = d - (LineWidth - 1);
+        return exp2(-2.0 * (x * x));
+    }
+}
 
 //vec3 phongModel(vec3 pos, vec3 norm) {
 //    vec3 s = normalize(vec3(Light.Position) - pos);
@@ -37,11 +51,6 @@ layout(location = 0) out vec4 FragColor;
 //}
 
 void main() {
-//    if (GIsEdge == 1) {
-//        FragColor = LineColor;
-//    }
-//    else {
-//        FragColor = vec4(phongModel(GPosition, GNormal), 1.0);
-//    }
-    FragColor = LineColor;
+    float mixVal = edgeMix();
+    FragColor = mix(QuadColor, LineColor, mixVal);
 }
