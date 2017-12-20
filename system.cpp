@@ -507,7 +507,7 @@ void initVBO() {
 
 void setShader() {
     ///////////// Uniforms ////////////////////
-    shader.setUniform("TessLevel", 3216;
+    shader.setUniform("TessLevel", 3216);
     shader.setUniform("LineWidth", 0.1f);
     shader.setUniform("LineColor", vec4(0.05f, 0.0f, 0.05f, 1.0f));
     shader.setUniform("Light.Intensity", vec3(1.0f, 1.0f, 1.0f));
