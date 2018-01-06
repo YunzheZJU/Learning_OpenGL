@@ -14,30 +14,10 @@ struct MaterialInfo {
 };
 uniform MaterialInfo Material;
 
-uniform float LineWidth;
-uniform vec4 LineColor;
-//uniform vec4 QuadColor;
-
-noperspective in vec3 EdgeDistance;
 in vec3 Normal;
 in vec4 Position;
 
 layout(location = 0) out vec4 FragColor;
-
-float edgeMix() {
-    float d = min(min(EdgeDistance.x, EdgeDistance.y), EdgeDistance.z);
-
-    if (d < LineWidth - 1) {
-        return 1.0;
-    }
-    else if (d > LineWidth + 1) {
-        return 0.0;
-    }
-    else {
-        float x = d - (LineWidth - 1);
-        return exp2(-2.0 * (x * x));
-    }
-}
 
 vec3 phongModel(vec3 pos, vec3 norm) {
     vec3 s = normalize(vec3(Light.Position) - pos);
@@ -53,7 +33,5 @@ vec3 phongModel(vec3 pos, vec3 norm) {
 }
 
 void main() {
-    vec4 color = vec4(phongModel(vec3(Position), Normal), 1.0);
-    float mixVal = edgeMix();
-    FragColor = mix(color, LineColor, mixVal);
+    FragColor = vec4(phongModel(vec3(Position), Normal), 1.0);
 }

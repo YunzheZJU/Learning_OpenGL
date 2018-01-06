@@ -8,9 +8,9 @@
 #include "glutils.h"
 
 Shader shader = Shader();
-//VBOPlane *plane;
+VBOPlane *plane;
 //VBOTeapot *teapot;
-VBOTeapotPatch *teapot;
+//VBOTeapotPatch *teapot;
 //VBOTorus *torus;
 //VBOCube *cube;
 //VBOMesh *ogre;
@@ -94,11 +94,7 @@ void Redraw() {
     // Draw something here
     updateMVPZero();
     updateMVPOne();
-    teapot->render();
-    updateMVPTwo();
-    teapot->render();
-    updateMVPThree();
-    teapot->render();
+    plane->render();
 //    DrawScene();
     shader.disable();
     // Draw crosshair and locator in fps mode, or target when in observing mode(fpsmode == 0).
@@ -501,9 +497,9 @@ void PrintStatus() {
 }
 
 void initVBO() {
-//    plane = new VBOPlane(50.0f, 50.0f, 1, 1);
+    plane = new VBOPlane(13.0f, 10.0f, 200, 2);
 //    teapot = new VBOTeapot(14, glm::mat4(1.0f));
-    teapot = new VBOTeapotPatch();
+//    teapot = new VBOTeapotPatch();
 //    torus = new VBOTorus(0.7f * 2, 0.3f * 2, 50, 50);
 //    cube = new VBOCube();
 //    ogre = new VBOMeshAdj("media/bs_ears.obj");
@@ -511,13 +507,6 @@ void initVBO() {
 
 void setShader() {
     ///////////// Uniforms ////////////////////
-//    shader.setUniform("TessLevel", 16);
-    shader.setUniform("MinTessLevel", 2);
-    shader.setUniform("MaxTessLevel", 16);
-    shader.setUniform("MaxDepth", 20.0f);
-    shader.setUniform("MinDepth", 2.0f);
-    shader.setUniform("LineWidth", 0.1f);
-    shader.setUniform("LineColor", vec4(0.05f, 0.0f, 0.05f, 1.0f));
     shader.setUniform("Light.Intensity", vec3(1.0f, 1.0f, 1.0f));
     /////////////////////////////////////////////
     glPatchParameteri(GL_PATCH_VERTICES, 16);
@@ -533,13 +522,15 @@ void updateMVPZero() {
 
 void updateMVPOne() {
     model = mat4(1.0f);
-    model = glm::translate(model, vec3(0.0f, -1.5f, 0.0f));
+//    model = glm::translate(model, vec3(0.0f, -1.5f, 0.0f));
 //    model = glm::rotate(model, glm::radians(angle), vec3(0.0f, 1.0f, 0.0f));
-    model = glm::rotate(model, glm::radians(-90.0f), vec3(1.0f, 0.0f, 0.0f));
+    model = glm::rotate(model, glm::radians(-10.0f), vec3(0.0f,0.0f,1.0f));
+    model = glm::rotate(model, glm::radians(50.0f), vec3(1.0f,0.0f,0.0f));
     shader.setUniform("Material.Kd", 0.9f, 0.5f, 0.2f);
     shader.setUniform("Material.Ks", 0.95f, 0.95f, 0.95f);
     shader.setUniform("Material.Ka", 0.1f, 0.1f, 0.1f);
     shader.setUniform("Material.Shininess", 100.0f);
+    shader.setUniform("Time", angle / 10);
 
     updateShaderMVP();
 }
@@ -587,32 +578,22 @@ void setupFBO() {
 }
 
 void setupVAO() {
-    glGenVertexArrays(1, &vaoHandle);
-    glBindVertexArray(vaoHandle);
-
-    glBindBuffer(GL_ARRAY_BUFFER, vboHandle);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-    glEnableVertexAttribArray(0);
-
-    glBindVertexArray(0);
-
-    // Set the number of vertices per patch.  IMPORTANT!!
-    glPatchParameteri(GL_PATCH_VERTICES, 4);
-
-    GLint maxVerts;
-    glGetIntegerv(GL_MAX_PATCH_VERTICES, &maxVerts);
-    printf("Max patch vertices: %d\n", maxVerts);
+//    glGenVertexArrays(1, &vaoHandle);
+//    glBindVertexArray(vaoHandle);
+//
+//    glBindBuffer(GL_ARRAY_BUFFER, vboHandle);
+//    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+//    glEnableVertexAttribArray(0);
+//
+//    glBindVertexArray(0);
 }
 
 void initShader() {
     try {
-//        shader.compileShader("basic.vert", GLSLShader::VERTEX);
-//        shader.compileShader("basic.frag", GLSLShader::FRAGMENT);
-//        shader.compileShader("basic.geom", GLSLShader::GEOMETRY);
         shader.compileShader("basic.vert");
-        shader.compileShader("basic.tcs");
-        shader.compileShader("basic.tes");
-        shader.compileShader("basic.geom");
+//        shader.compileShader("basic.tcs");
+//        shader.compileShader("basic.tes");
+//        shader.compileShader("basic.geom");
         shader.compileShader("basic.frag");
         shader.link();
         shader.use();
