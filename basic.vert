@@ -1,31 +1,25 @@
 #version 430
 
-layout(location = 0) in vec3 VertexPosition;
+layout(location = 0) in vec3 VertexInitVel;
+layout(location = 1) in float StartTime;
 
-out vec4 Position;
-out vec3 Normal;
+out float Transp;
 
 uniform float Time;
+uniform vec3 Gravity = vec3(0.0, -0.05, 0.0);
+uniform float ParticleLifetime;
 
-uniform float Freq = 2.5;
-uniform float Velocity = 2.5;
-uniform float Amp = 0.6;
-
-uniform mat4 ModelViewMatrix;
-uniform mat3 NormalMatrix;
 uniform mat4 MVP;
 
 void main() {
-    vec4 pos = vec4(VertexPosition, 1.0);
-    // Translate the y coordinate
-    float u = Freq * pos.x - Velocity * Time;
-    pos.y = Amp * sin(u);
-    // Compute the normal vector;
-    vec3 n = vec3(0.0);
-    n.xy = normalize(vec2(cos(u), 1.0));
-    // Send position and normal (in camera cords) to frag
-    Position = ModelViewMatrix * pos;
-    Normal = NormalMatrix * n;
-    // The position in clip coordinates
-    gl_Position = MVP * pos;
+    vec3 pos = vec3(0.0);
+    Transp = 0.0;
+    if (Time > StartTime) {
+        float t = Time - StartTime;
+        if (t < ParticleLifetime) {
+            pos = VertexInitVel * t + Gravity * t * t;
+            Transp = 1.0 - t / ParticleLifetime;
+        }
+    }
+    gl_Position = MVP * vec4(pos, 1.0);
 }

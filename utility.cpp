@@ -161,3 +161,7 @@ float gauss(float x, float sigma2) {
     double expon = -(x * x) / (2.0 * sigma2);
     return (float) (coeff * exp(expon));
 }
+
+float randFloat() {
+    return ((float) rand() / RAND_MAX);
+}

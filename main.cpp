@@ -31,6 +31,13 @@ int main(int argc, char *argv[]) {
 
 //    SetUpLights();
     initShader();
+    // Enable blending
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    // Enable Point Sprite !important
+    glEnable(GL_POINT_SPRITE);
+    // Set the point size
+    glPointSize(10.0f);
     initVBO();
     setupFBO();
     setupVAO();
