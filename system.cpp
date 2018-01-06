@@ -16,8 +16,12 @@ VBOPlane *plane;
 //VBOMesh *ogre;
 //VBOMeshAdj *ogre;
 GLuint vboHandle;
-GLuint initVel, startTime, particles;
 GLuint nParticles;
+GLuint posBuf[2], velBuf[2];
+GLuint particleArray[2];
+GLuint feedback[2], initVel, startTime[2];
+GLuint drawBuf = 1, query;
+GLuint renderSub, updateSub;
 //GLuint deferredFBO;
 //GLuint pass1Index;
 //GLuint pass2Index;
@@ -79,6 +83,24 @@ void Reshape(int width, int height) {
 
 void Redraw() {
     shader.use();
+    glDisable(GL_DEPTH_TEST);
+    // Update pass
+    glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &updateSub);
+
+    glEnable(GL_RASTERIZER_DISCARD);
+
+    glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, feedback[drawBuf]);
+
+    glBeginTransformFeedback(GL_POINTS);
+    glBindVertexArray(particleArray[1-drawBuf]);
+    glDrawArrays(GL_POINTS, 0, nParticles);
+    glEndTransformFeedback();
+
+    glDisable(GL_RASTERIZER_DISCARD);
+
+    // Render pass
+    glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &renderSub);
+
     // Render scene
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity();                        // Reset The Current Modelview Matrix
@@ -91,16 +113,17 @@ void Redraw() {
     } else {
         glDisable(GL_MULTISAMPLE_ARB);
     }
-    angle += 0.5f;
-    glEnable(GL_DEPTH_TEST);
+    angle += 0.05f;
+//    glEnable(GL_DEPTH_TEST);
     // Draw something here
     updateMVPZero();
     updateMVPOne();
 
-    glDisable(GL_DEPTH_TEST);
-    glBindVertexArray(particles);
-    glDrawArrays(GL_POINTS, 0, nParticles);
+    glBindVertexArray(particleArray[drawBuf]);
+    glDrawTransformFeedback(GL_POINTS, feedback[drawBuf]);
 
+    // Swap buffers
+    drawBuf = 1 - drawBuf;
 //    DrawScene();
     shader.disable();
     // Draw crosshair and locator in fps mode, or target when in observing mode(fpsmode == 0).
@@ -509,68 +532,6 @@ void initVBO() {
 //    torus = new VBOTorus(0.7f * 2, 0.3f * 2, 50, 50);
 //    cube = new VBOCube();
 //    ogre = new VBOMeshAdj("media/bs_ears.obj");
-    nParticles = 8000;
-
-    // Generate the buffers
-    glGenBuffers(1, &initVel);   // Initial velocity buffer
-    glGenBuffers(1, &startTime); // Start time buffer
-
-    // Allocate space for all buffers
-    int size = nParticles * 3 * sizeof(float);
-    glBindBuffer(GL_ARRAY_BUFFER, initVel);
-    glBufferData(GL_ARRAY_BUFFER, size, NULL, GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, startTime);
-    glBufferData(GL_ARRAY_BUFFER, nParticles * sizeof(float), NULL, GL_STATIC_DRAW);
-
-    // Fill the first velocity buffer with random velocities
-    vec3 v(0.0f);
-    float velocity, theta, phi;
-    GLfloat *data = new GLfloat[nParticles * 3];
-    for (unsigned int i = 0; i < nParticles; i++) {
-
-        theta = glm::mix(0.0f, glm::pi<float>() / 6.0f, randFloat());
-        phi = glm::mix(0.0f, glm::two_pi<float>(), randFloat());
-
-        v.x = sinf(theta) * cosf(phi);
-        v.y = cosf(theta);
-        v.z = sinf(theta) * sinf(phi);
-
-        velocity = glm::mix(1.25f, 1.5f, randFloat());
-        v = glm::normalize(v) * velocity;
-
-        data[3 * i] = v.x;
-        data[3 * i + 1] = v.y;
-        data[3 * i + 2] = v.z;
-    }
-    glBindBuffer(GL_ARRAY_BUFFER, initVel);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, size, data);
-
-    // Fill the start time buffer
-    delete[] data;
-    data = new GLfloat[nParticles];
-    float time = 0.0f;
-    float rate = 0.00075f;
-    for (unsigned int i = 0; i < nParticles; i++) {
-        data[i] = time;
-        time += rate;
-    }
-    glBindBuffer(GL_ARRAY_BUFFER, startTime);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, nParticles * sizeof(float), data);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    delete[] data;
-
-    glGenVertexArrays(1, &particles);
-    glBindVertexArray(particles);
-    glBindBuffer(GL_ARRAY_BUFFER, initVel);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-    glEnableVertexAttribArray(0);
-
-    glBindBuffer(GL_ARRAY_BUFFER, startTime);
-    glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 0, NULL);
-    glEnableVertexAttribArray(1);
-
-    glBindVertexArray(0);
 }
 
 void setShader() {
@@ -578,11 +539,15 @@ void setShader() {
     const char *texName = "media/texture/bluewater.bmp";
     glActiveTexture(GL_TEXTURE0);
     BMPReader::loadTex(texName);
+
+    GLuint programHandle = shader.getProgram();
+    renderSub = glGetSubroutineIndex(programHandle, GL_VERTEX_SHADER, "render");
+    updateSub = glGetSubroutineIndex(programHandle, GL_VERTEX_SHADER, "update");
     ///////////// Uniforms ////////////////////
     shader.setUniform("Light.Intensity", vec3(1.0f, 1.0f, 1.0f));
     shader.setUniform("ParticleTex", 0);
     shader.setUniform("ParticleLifetime", 3.5f);
-    shader.setUniform("Gravity", vec3(0.0f, -0.2f, 0.0f));
+    shader.setUniform("Accel", vec3(0.0f, -0.4f, 0.0f));
     /////////////////////////////////////////////
     glPatchParameteri(GL_PATCH_VERTICES, 16);
     updateShaderMVP();
@@ -606,6 +571,7 @@ void updateMVPOne() {
     shader.setUniform("Material.Ka", 0.1f, 0.1f, 0.1f);
     shader.setUniform("Material.Shininess", 100.0f);
     shader.setUniform("Time", angle / 10);
+    shader.setUniform("H", 0.005f);
 
     updateShaderMVP();
 }
@@ -670,10 +636,156 @@ void initShader() {
 //        shader.compileShader("basic.tes");
 //        shader.compileShader("basic.geom");
         shader.compileShader("basic.frag");
+
+        //////////////////////////////////////////////////////
+        // Setup the transform feedback (must be done before linking the program)
+        GLuint progHandle = shader.getProgram();
+        const char *outputNames[] = {"Position", "Velocity", "StartTime"};
+        glTransformFeedbackVaryings(progHandle, 3, outputNames, GL_SEPARATE_ATTRIBS);
+        ///////////////////////////////////////////////////////
+
         shader.link();
         shader.use();
     } catch (GLSLProgramException &e) {
         cerr << e.what() << endl;
         exit(EXIT_FAILURE);
     }
+}
+
+void initBuffers() {
+    initVBO();
+    setupFBO();
+    setupVAO();
+
+    nParticles = 4000;
+
+    // Generate the buffers
+    glGenBuffers(2, posBuf);    // position buffers
+    glGenBuffers(2, velBuf);    // velocity buffers
+    glGenBuffers(2, startTime); // Start time buffers
+    glGenBuffers(1, &initVel);  // Initial velocity buffer (never changes, only need one)
+
+    // Allocate space for all buffers
+    int size = nParticles * 3 * sizeof(GLfloat);
+    glBindBuffer(GL_ARRAY_BUFFER, posBuf[0]);
+    glBufferData(GL_ARRAY_BUFFER, size, NULL, GL_DYNAMIC_COPY);
+    glBindBuffer(GL_ARRAY_BUFFER, posBuf[1]);
+    glBufferData(GL_ARRAY_BUFFER, size, NULL, GL_DYNAMIC_COPY);
+    glBindBuffer(GL_ARRAY_BUFFER, velBuf[0]);
+    glBufferData(GL_ARRAY_BUFFER, size, NULL, GL_DYNAMIC_COPY);
+    glBindBuffer(GL_ARRAY_BUFFER, velBuf[1]);
+    glBufferData(GL_ARRAY_BUFFER, size, NULL, GL_DYNAMIC_COPY);
+    glBindBuffer(GL_ARRAY_BUFFER, initVel);
+    glBufferData(GL_ARRAY_BUFFER, size, NULL, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, startTime[0]);
+    glBufferData(GL_ARRAY_BUFFER, nParticles * sizeof(float), NULL, GL_DYNAMIC_COPY);
+    glBindBuffer(GL_ARRAY_BUFFER, startTime[1]);
+    glBufferData(GL_ARRAY_BUFFER, nParticles * sizeof(float), NULL, GL_DYNAMIC_COPY);
+
+    // Fill the first position buffer with zeroes
+    GLfloat *data = new GLfloat[nParticles * 3];
+    for (int i = 0; i < nParticles * 3; i++) data[i] = 0.0f;
+    glBindBuffer(GL_ARRAY_BUFFER, posBuf[0]);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, size, data);
+
+    // Fill the first velocity buffer with random velocities
+    vec3 v(0.0f);
+    float velocity, theta, phi;
+    for (int i = 0; i < nParticles; i++) {
+
+        theta = glm::mix(0.0f, glm::pi<float>() / 6.0f, randFloat());
+        phi = glm::mix(0.0f, glm::two_pi<float>(), randFloat());
+
+        v.x = sinf(theta) * cosf(phi);
+        v.y = cosf(theta);
+        v.z = sinf(theta) * sinf(phi);
+
+        velocity = glm::mix(1.25f, 1.5f, randFloat());
+        v = glm::normalize(v) * velocity;
+
+        data[3 * i] = v.x;
+        data[3 * i + 1] = v.y;
+        data[3 * i + 2] = v.z;
+    }
+    glBindBuffer(GL_ARRAY_BUFFER, velBuf[0]);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, size, data);
+    glBindBuffer(GL_ARRAY_BUFFER, initVel);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, size, data);
+
+    // Fill the first start time buffer
+    delete[] data;
+    data = new GLfloat[nParticles];
+    float time = 0.0f;
+    float rate = 0.001f;
+    for (int i = 0; i < nParticles; i++) {
+        data[i] = time;
+        time += rate;
+    }
+    glBindBuffer(GL_ARRAY_BUFFER, startTime[0]);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, nParticles * sizeof(float), data);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    delete[] data;
+
+    // Create vertex arrays for each set of buffers
+    glGenVertexArrays(2, particleArray);
+
+    // Set up particle array 0
+    glBindVertexArray(particleArray[0]);
+    glBindBuffer(GL_ARRAY_BUFFER, posBuf[0]);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+    glEnableVertexAttribArray(0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, velBuf[0]);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+    glEnableVertexAttribArray(1);
+
+    glBindBuffer(GL_ARRAY_BUFFER, startTime[0]);
+    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 0, NULL);
+    glEnableVertexAttribArray(2);
+
+    glBindBuffer(GL_ARRAY_BUFFER, initVel);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+    glEnableVertexAttribArray(3);
+
+    // Set up particle array 1
+    glBindVertexArray(particleArray[1]);
+    glBindBuffer(GL_ARRAY_BUFFER, posBuf[1]);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+    glEnableVertexAttribArray(0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, velBuf[1]);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+    glEnableVertexAttribArray(1);
+
+    glBindBuffer(GL_ARRAY_BUFFER, startTime[1]);
+    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 0, NULL);
+    glEnableVertexAttribArray(2);
+
+    glBindBuffer(GL_ARRAY_BUFFER, initVel);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+    glEnableVertexAttribArray(3);
+
+    glBindVertexArray(0);
+
+    // Setup the feedback objects
+    glGenTransformFeedbacks(2, feedback);
+
+    // Transform feedback 0
+    glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, feedback[0]);
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, posBuf[0]);
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 1, velBuf[0]);
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 2, startTime[0]);
+
+    // Transform feedback 1
+    glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, feedback[1]);
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, posBuf[1]);
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 1, velBuf[1]);
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 2, startTime[1]);
+
+    glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, 0);
+
+    GLint value;
+    glGetIntegerv(GL_MAX_TRANSFORM_FEEDBACK_BUFFERS, &value);
+    printf("MAX_TRANSFORM_FEEDBACK_BUFFERS = %d\n", value);
 }

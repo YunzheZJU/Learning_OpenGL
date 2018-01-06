@@ -44,5 +44,6 @@ void updateShaderMVP();
 void setupFBO();
 void setupVAO();
 void initShader();
+void initBuffers();
 
 #endif //GPUBASEDRENDERING_A1_SYSTEM_H

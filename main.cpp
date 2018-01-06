@@ -29,8 +29,6 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-//    SetUpLights();
-    initShader();
     // Enable blending
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -38,9 +36,10 @@ int main(int argc, char *argv[]) {
     glEnable(GL_POINT_SPRITE);
     // Set the point size
     glPointSize(10.0f);
-    initVBO();
-    setupFBO();
-    setupVAO();
+
+//    SetUpLights();
+    initShader();
+    initBuffers();
     setShader();
 
     glutMainLoop();

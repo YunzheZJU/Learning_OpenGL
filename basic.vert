@@ -1,25 +1,52 @@
 #version 430
 
-layout(location = 0) in vec3 VertexInitVel;
-layout(location = 1) in float StartTime;
+subroutine void RenderPassType();
+subroutine uniform RenderPassType RenderPass;
 
+layout(location = 0) in vec3 VertexPosition;
+layout(location = 1) in vec3 VertexVelocity;
+layout(location = 2) in float VertexStartTime;
+layout(location = 3) in vec3 VertexInitialVelocity;
+
+out vec3 Position;
+out vec3 Velocity;
+out float StartTime;
 out float Transp;
 
 uniform float Time;
-uniform vec3 Gravity = vec3(0.0, -0.05, 0.0);
+uniform float H;
+uniform vec3 Accel;
 uniform float ParticleLifetime;
 
 uniform mat4 MVP;
 
-void main() {
-    vec3 pos = vec3(0.0);
-    Transp = 0.0;
-    if (Time > StartTime) {
-        float t = Time - StartTime;
-        if (t < ParticleLifetime) {
-            pos = VertexInitVel * t + Gravity * t * t;
-            Transp = 1.0 - t / ParticleLifetime;
+subroutine (RenderPassType)
+void update() {
+    Position = VertexPosition;
+    Velocity = VertexVelocity;
+    StartTime = VertexStartTime;
+    if (Time >= StartTime) {
+        float age = Time - StartTime;
+        if (age > ParticleLifetime) {
+            // Recycle it
+            Position = vec3(0.0);
+            Velocity = VertexInitialVelocity;
+            StartTime = Time;
+        } else {
+            // Update it
+            Position += Velocity * H;
+            Velocity += Accel * H;
         }
     }
-    gl_Position = MVP * vec4(pos, 1.0);
+}
+
+subroutine (RenderPassType)
+void render() {
+    float age = Time - VertexStartTime;
+    Transp = 1.0 - age / ParticleLifetime;
+    gl_Position = MVP * vec4(VertexPosition, 1.0);
+}
+
+void main() {
+    RenderPass();
 }
